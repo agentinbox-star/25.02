@@ -1,0 +1,136 @@
+---
+title: "Вложение"
+icon: "paperclip"
+---
+
+## Отправка и получение файлов с вашими агентами
+
+## Что такое `вложения`?
+
+`Вложение` — это файл, связанный с `сообщением`. Это может быть что угодно, от счета-фактуры в формате PDF до отчета CSV или изображения (хотя мы не рекомендуем отправлять изображения в первом отправленном письме. Мы подробнее об этом поговорим в [разделе доставляемости](/email-deliverability)). Ваши агенты могут как отправлять `вложения` в исходящих `сообщениях`, так и обрабатывать `вложения` из входящих `сообщений`.
+
+## Отправка `вложений`
+
+Чтобы отправить файл, вы включаете его в массив `вложений` при отправке `сообщения`. Каждый объект в массиве представляет один файл и должен иметь свойство `content`.
+
+\* **`content`** (обязательно): Содержимое вашего файла, закодированное в Base64. \* **`filename`** (необязательно): Имя файла (например, `invoice.pdf`). \* **`content_type`** (необязательно): MIME-тип файла (например, `application/pdf`).
+
+<CodeBlocks>
+  ```python
+    import base64
+
+    # Простой текстовый файл для этого примера
+
+    file_content = "This is the content of our report."
+
+    # Вы должны закодировать содержимое файла в Base64 перед отправкой
+
+    encoded_content = base64.b64encode(file_content.encode()).decode()
+
+    sent_message = client.inboxes.messages.send(
+    inbox_id="reports@agentmail.to",
+    to=["supervisor@example.com"],
+    subject="Q4 Financial Report",
+    text="Please see the attached report.",
+    attachments=[{
+    "content": encoded_content,
+    "filename": "Q4-report.txt",
+    "content_type": "text/plain"
+    }]
+    )
+  ```
+
+  ```typescript title="TypeScript"
+    // Простой текстовый файл для этого примера
+    const fileContent = "This is the content of our report.";
+    // Вы должны закодировать содержимое файла в Base64 перед отправкой
+    const encodedContent = Buffer.from(fileContent).toString("base64");
+
+    const sentMessage = await client.inboxes.messages.send("reports@agentmail.to", {
+      to: ["supervisor@example.com"],
+      subject: "Q4 Financial Report",
+      text: "Please see the attached report.",
+      attachments: [{
+        content: encodedContent,
+        filename: "Q4-report.txt",
+        contentType: "text/plain",
+      }],
+    });
+  ```
+</CodeBlocks>
+
+## Получение `вложений`
+
+Для получения `вложения` сначала нужен его `attachment_id`. Вы можете получить этот ID из массива `attachments` на объекте `сообщение`. Как только у вас есть ID, вы можете загрузить файл.
+
+Ответ API для получения вложения — это сам файл, который вы затем можете сохранить на диск или обработать в памяти.
+
+### Из определенного `сообщения`
+
+Если вы знаете, какому `сообщению` принадлежит `вложение`, вы можете получить его напрямую.
+
+<CodeBlocks>
+  ```python
+    inbox_id = "inbox_123"
+    message_id = "msg_456"
+    attachment_id = "attach_789" # Из объекта сообщения
+
+    file_data = client.inboxes.messages.get_attachment(
+    inbox_id=inbox_id,
+    message_id=message_id,
+    attachment_id=attachment_id
+    )
+
+    # Теперь вы можете сохранить файл
+
+    with open("downloaded_file.pdf", "wb") as f:
+    f.write(file_data)
+  ```
+
+  ```typescript title="TypeScript"
+    const inboxId = "inbox_123";
+    const messageId = "msg_456";
+    const attachmentId = "attach_789"; // Из объекта сообщения
+
+    const fileData = await client.inboxes.messages.get_attachment(
+      inboxId,
+      messageId,
+      attachmentId
+    );
+
+    // fileData — это Blob/Buffer, который вы можете обработать
+    // Например, в Node.js:
+    // import fs from 'fs';
+    // fs.writeFileSync('downloaded_file.pdf', fileData);
+  ```
+</CodeBlocks>
+
+### Из определенной `цепи`
+
+Аналогично, вы можете получить `вложение`, если вы знаете `цепь`, в которой оно находится, что может быть более удобно для многосообщений бесед.
+
+<CodeBlocks>
+  ```python
+    inbox_id = "inbox_123"
+    thread_id = "thread_abc"
+    attachment_id = "attach_789" # Из сообщения в цепи
+
+    file_data = client.inboxes.threads.get_attachment(
+    inbox_id=inbox_id,
+    thread_id=thread_id,
+    attachment_id=attachment_id
+    )
+  ```
+
+  ```typescript title="TypeScript"
+    const inboxId = "inbox_123";
+    const threadId = "thread_abc";
+    const attachmentId = "attach_789"; // Из сообщения в цепи
+
+    const fileData = await client.inboxes.threads.get_attachment(
+      inboxId,
+      threadId,
+      attachmentId
+    );
+  ```
+</CodeBlocks>
