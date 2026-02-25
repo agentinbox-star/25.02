@@ -1,57 +1,102 @@
 ---
 title: "Введение"
-description: "Добро пожаловать в AgentInbox - мощную платформу для управления входящей почтой с помощью интеллектуальных агентов"
+description: "Предоставьте ИИ-агентам почтовые ящики "
 icon: "bookmark"
 ---
 
-## Приступи к работе
+## Что такое AgentInbox?
 
-Запусти платформу AgentInbox за несколько минут и начни автоматизировать управление своей почтой.
+AgentInbox — это платформа API для предоставления ИИ-агентам собственных входящих ящиков, позволяющая им отправлять, получать и обрабатывать электронные письма. Мы управляем инфраструктурой, чтобы вы могли сосредоточиться на создании почтовых агентов.
 
-<Card icon="rocket" horizontal href="/quickstart" title="Начни здесь">
-  Следуй нашему трёхэтапному руководству быстрого старта.
-</Card>
+**Агенты электронной почты** могут:
 
-## Настрой под себя
+- Вести беседы с пользователями в своих входящих ящиках
+- Автоматизировать рабочие процессы на основе электронной почты для предприятий
+- Аутентифицироваться с приложениями третьих сторон
+- Действовать как полноценные пользователи в интернете
 
-Создай платформу, которая выглядит отлично и помогает твоим пользователям.
+## Проблема с традиционной электронной почтой
 
-<Columns cols={2}>
-  <Card icon="pen-to-square" href="/development" title="Локальное редактирование">
-    Редактируй документацию локально и просматривай изменения в реальном времени.
+Существующая инфраструктура электронной почты была создана для людей. Устаревшие поставщики, такие как Gmail и Outlook, имеют несколько ограничений для агентских случаев использования:
+
+<CardGroup>
+  <Card icon="code" title="Нет API для входящих ящиков">
+    Устаревшие поставщики не поддерживают API для создания новых входящих ящиков по требованию.
   </Card>
-  <Card icon="palette" href="/essentials/settings" title="Персонализация интерфейса">
-    Настрой дизайн и цветовую схему в соответствии с корпоративным стилем.
+  <Card icon="money-bill-1" title="Цена за входящий ящик">
+    Они взимают ежемесячную подписку за входящий ящик (\$12/ящик/месяц !!), что дорого для агентов.
   </Card>
-  <Card icon="map" href="/essentials/navigation" title="Навигация и структура">
-    Организуй документацию так, чтобы пользователи легко находили нужную информацию.
+  <Card icon="light-emergency" title="Ограничительные лимиты">
+    Они устанавливают ограничивающие лимиты скорости и отправки, не подходящие для автоматизации.
   </Card>
-  <Card icon="terminal" href="/api-reference/introduction" title="API справочник">
-    Полная документация API для интеграции и автоматизации.
+  <Card icon="comment-exclamation" title="Плохой DX">
+    В целом, они предлагают плохой опыт разработчика для создания на основе электронной почты. Gmail API отстой!
   </Card>
-</Columns>
+</CardGroup>
 
-## Создавай красивые страницы
+## Решение
 
-Всё необходимое для создания лучшей в своём классе документации.
+AgentInbox — это поставщик электронной почты, ориентированный на API и разработанный для агентов. Думайте о нем как о Gmail, но с:
 
-<Columns cols={2}>
-  <Card icon="pen-fancy" href="/essentials/markdown" title="Пиши с MDX">
-    Используй MDX для стилизации страниц документации.
-  </Card>
-  <Card icon="code" href="/essentials/code" title="Примеры кода">
-    Добавляй примеры кода для демонстрации использования платформы.
-  </Card>
-  <Card icon="image" href="/essentials/images" title="Изображения и медиа">
-    Вставляй изображения и другой мультимедийный контент.
-  </Card>
-  <Card icon="recycle" href="/essentials/reusable-snippets" title="Переиспользуемые фрагменты">
-    Напиши один раз и переиспользуй по всей документации.
-  </Card>
-</Columns>
+<Steps>
+  <Step title="API-First инфраструктура">
+    <Callout icon="fa-solid fa-laptop-code">
+      **Программируемые входящие ящики**: Создавайте и управляйте входящими ящиками через API.
+    </Callout>
+    <Callout icon="fa-solid fa-money-bill-wave">
+      **Ценообразование на основе использования**: Платите только за то, что вы используете.
+    </Callout>
+    <Callout icon="fa-solid fa-unlock">
+      **Готовность к высокому объему**: Без ограничивающих лимитов скорости или отправки.
+    </Callout>
+    <Callout icon="fa-solid fa-bolt">
+      **События в реальном времени**: Получайте уведомления мгновенно с помощью вебхуков и вебсокетов.
+    </Callout>
+    <Callout icon="fa-solid fa-key">
+      **Простая аутентификация**: Используйте API ключи, без сложных потоков OAuth.
+    </Callout>
+  </Step>
+  <Step title="Функции, ориентированные на ИИ">
+    <Callout icon="fa-solid fa-shield-halved">
+      **Встроенная безопасность**: Используйте разрешения API и ограничения агентов для контроля доступа.
+    </Callout>
+    <Callout icon="fa-solid fa-magnifying-glass">
+      **Семантический поиск**: Ищите по всем входящим ящикам в вашей организации по смыслу.
+    </Callout>
+    <Callout icon="fa-solid fa-tags">
+      **Автоматическое присвоение меток**: Автоматически категоризируйте письма с использованием определяемых пользователем подсказок.
+    </Callout>
+    <Callout icon="fa-solid fa-file-invoice">
+      **Извлечение структурированных данных**: Извлекайте структурированные данные из неструктурированных писем.
+    </Callout>
+    <Callout icon="fa-solid fa-ellipsis-h">
+      И многое другое в разработке...
+    </Callout>
+  </Step>
+</Steps>
 
-## Ищешь вдохновение?
+Наши клиенты используют AgentInbox для идентификации агентов, аутентификации и коммуникации. Чтобы начать, создайте учетную запись на нашей [консоли](https://console.agentmail.to) и напишите нам на [support@agentmail.cc](mailto:support@agentmail.cc), если у вас возникнут какие-либо проблемы.
 
-<Card icon="stars" href="https://mintlify.com/customers" title="Посмотри примеры">
-  Изучи лучшие примеры документации в нашей галерее.
-</Card>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1V7BISeFUTM?si=4asiGnuV4O81nu5B" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen />
+
+## Начало работы
+
+<CardGroup>
+  <Card icon="fa-solid fa-book" href="/quickstart" title="Быстрый старт">
+    
+  </Card>
+  <Card icon="fa-solid fa-code" href="/api-reference" title="Справочник API">
+    
+  </Card>
+</CardGroup>
+
+## Поддержка
+
+<CardGroup>
+  <Card icon="brands discord" href="https://discord.gg/hTYatWYWBc" title="Discord">
+    
+  </Card>
+  <Card icon="fa-solid fa-envelope" href="mailto:support@agentmail.cc" title="Электронная почта">
+    
+  </Card>
+</CardGroup>
