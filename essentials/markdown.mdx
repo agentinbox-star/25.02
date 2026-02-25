@@ -1,63 +1,63 @@
 ---
-title: 'Markdown syntax'
-description: 'Text, title, and styling in standard markdown'
+title: 'Синтаксис Markdown'
+description: 'Текст, заголовки и стилизация в стандартном Markdown'
 icon: 'text-size'
 ---
 
-## Titles
+## Заголовки
 
-Best used for section headers.
+Лучше всего использовать для заголовков разделов.
 
 ```md
-## Titles
+## Заголовки
 ```
 
-### Subtitles
+### Подзаголовки
 
-Best used for subsection headers.
+Лучше всего использовать для подзаголовков разделов.
 
 ```md
-### Subtitles
+### Подзаголовки
 ```
 
 <Tip>
 
-Each **title** and **subtitle** creates an anchor and also shows up on the table of contents on the right.
+Каждый **заголовок** и **подзаголовок** создают якорь и отображаются в оглавлении справа.
 
 </Tip>
 
-## Text formatting
+## Форматирование текста
 
-We support most markdown formatting. Simply add `**`, `_`, or `~` around text to format it.
+Мы поддерживаем большинство форматирований Markdown. Просто добавь `**`, `_`, или `~` вокруг текста, чтобы его отформатировать.
 
-| Style         | How to write it   | Result          |
-| ------------- | ----------------- | --------------- |
-| Bold          | `**bold**`        | **bold**        |
-| Italic        | `_italic_`        | _italic_        |
-| Strikethrough | `~strikethrough~` | ~strikethrough~ |
+| Стиль       | Как написать      | Результат         |
+| ----------- | ----------------- | --------------- |
+| Жирный      | `**жирный**`      | **жирный**      |
+| Курсив      | `_курсив_`        | _курсив_        |
+| Зачёркнуто  | `~зачёркнуто~`    | ~зачёркнуто~    |
 
-You can combine these. For example, write `**_bold and italic_**` to get **_bold and italic_** text.
+Ты можешь комбинировать эти форматы. Например, напиши `**_жирный и курсив_**`, чтобы получить **_жирный и курсив_** текст.
 
-You need to use HTML to write superscript and subscript text. That is, add `<sup>` or `<sub>` around your text.
+Для написания superscript и subscript текста нужно использовать HTML. То есть, добавь `<sup>` или `<sub>` вокруг текста.
 
-| Text Size   | How to write it          | Result                 |
+| Размер текста | Как написать              | Результат              |
 | ----------- | ------------------------ | ---------------------- |
 | Superscript | `<sup>superscript</sup>` | <sup>superscript</sup> |
 | Subscript   | `<sub>subscript</sub>`   | <sub>subscript</sub>   |
 
-## Linking to pages
+## Ссылки на страницы
 
-You can add a link by wrapping text in `[]()`. You would write `[link to google](https://google.com)` to [link to google](https://google.com).
+Ты можешь добавить ссылку, заключив текст в `[]()`. Ты напишешь `[ссылка на гугл](https://google.com)`, чтобы создать [ссылку на гугл](https://google.com).
 
-Links to pages in your docs need to be root-relative. Basically, you should include the entire folder path. For example, `[link to text](/writing-content/text)` links to the page "Text" in our components section.
+Ссылки на страницы в документации должны быть root-relative. По сути, ты должен включить весь путь папки. Например, `[ссылка на текст](/writing-content/text)` ссылается на страницу "Text" в разделе компонентов.
 
-Relative links like `[link to text](../text)` will open slower because we cannot optimize them as easily.
+Относительные ссылки как `[ссылка на текст](../text)` загружаются медленнее, потому что мы не можем их оптимизировать так же легко.
 
-## Blockquotes
+## Цитаты
 
-### Singleline
+### Однострочные
 
-To create a blockquote, add a `>` in front of a paragraph.
+Чтобы создать цитату, добавь `>` перед абзацем.
 
 > Dorothy followed her through many of the beautiful rooms in her castle.
 
@@ -65,7 +65,7 @@ To create a blockquote, add a `>` in front of a paragraph.
 > Dorothy followed her through many of the beautiful rooms in her castle.
 ```
 
-### Multiline
+### Многострочные
 
 > Dorothy followed her through many of the beautiful rooms in her castle.
 >
@@ -79,7 +79,7 @@ To create a blockquote, add a `>` in front of a paragraph.
 
 ### LaTeX
 
-Mintlify supports [LaTeX](https://www.latex-project.org) through the Latex component.
+Mintlify поддерживает [LaTeX](https://www.latex-project.org) через компонент Latex.
 
 <Latex>8 x (vk x H1 - H2) = (0,1)</Latex>
 

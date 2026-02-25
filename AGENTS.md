@@ -1,33 +1,33 @@
-> **First-time setup**: Customize this file for your project. Prompt the user to customize this file for their project.
-> For Mintlify product knowledge (components, configuration, writing standards),
-> install the Mintlify skill: `npx skills add https://mintlify.com/docs`
+> **Первая настройка**: Настрой этот файл для своего проекта. Попроси пользователя настроить этот файл для его проекта.
+> Для знаний о продукте Mintlify (компоненты, конфигурация, стандарты написания),
+> установи Mintlify skill: `npx skills add https://mintlify.com/docs`
 
-# Documentation project instructions
+# Инструкции проекта документации
 
-## About this project
+## О проекте
 
-- This is a documentation site built on [Mintlify](https://mintlify.com)
-- Pages are MDX files with YAML frontmatter
-- Configuration lives in `docs.json`
-- Run `mint dev` to preview locally
-- Run `mint broken-links` to check links
+- Это сайт документации, построенный на [Mintlify](https://mintlify.com)
+- Страницы - это MDX файлы с YAML frontmatter
+- Конфигурация находится в `docs.json`
+- Выполни `mint dev` для локального предпросмотра
+- Выполни `mint broken-links` для проверки ссылок
 
-## Terminology
+## Терминология
 
-<!-- Add product-specific terms and preferred usage -->
-<!-- Example: Use "workspace" not "project", "member" not "user" -->
+<!-- Добавь термины, специфичные для продукта и предпочитаемое использование -->
+<!-- Пример: Используй "workspace" вместо "project", "member" вместо "user" -->
 
-## Style preferences
+## Предпочтения стиля
 
-<!-- Add any project-specific style rules below -->
+<!-- Добавь специфичные для проекта правила стиля ниже -->
 
-- Use active voice and second person ("you")
-- Keep sentences concise — one idea per sentence
-- Use sentence case for headings
-- Bold for UI elements: Click **Settings**
-- Code formatting for file names, commands, paths, and code references
+- Используй активный залог и второе лицо ("ты")
+- Держи предложения краткими — одна идея в предложении
+- Используй sentence case для заголовков
+- Жирный для элементов UI: Клик **Settings**
+- Форматирование кода для имён файлов, команд, путей и ссылок на код
 
-## Content boundaries
+## Границы контента
 
-<!-- Define what should and shouldn't be documented -->
-<!-- Example: Don't document internal admin features -->
+<!-- Определи что должно и не должно быть задокументировано -->
+<!-- Пример: Не документируй внутренние функции администратора -->

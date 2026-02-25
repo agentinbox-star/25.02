@@ -1,94 +1,94 @@
 ---
-title: 'Development'
-description: 'Preview changes locally to update your docs'
+title: 'Разработка'
+description: 'Просматривай изменения локально для обновления документации'
 ---
 
 <Info>
-  **Prerequisites**:
-  - Node.js version 19 or higher
-  - A docs repository with a `docs.json` file
+  **Требования**:
+  - Node.js версия 19 или выше
+  - Репозиторий документации с файлом `docs.json`
 </Info>
 
-Follow these steps to install and run Mintlify on your operating system.
+Следуй этим шагам для установки и запуска Mintlify на твоей операционной системе.
 
 <Steps>
-<Step title="Install the Mintlify CLI">
+<Step title="Установи Mintlify CLI">
 
 ```bash
 npm i -g mint
 ```
 </Step>
 
-<Step title="Preview locally">
+<Step title="Локальный предпросмотр">
 
-Navigate to your docs directory where your `docs.json` file is located, and run the following command:
+Перейди в директорию с документацией, где находится файл `docs.json`, и выполни команду:
 
 ```bash
 mint dev
 ```
 
-A local preview of your documentation will be available at `http://localhost:3000`.
+Локальный предпросмотр документации будет доступен на `http://localhost:3000`.
 
 </Step>
 </Steps>
 
-## Custom ports
+## Собственные порты
 
-By default, Mintlify uses port 3000. You can customize the port Mintlify runs on by using the `--port` flag. For example, to run Mintlify on port 3333, use this command:
+По умолчанию Mintlify использует порт 3000. Ты можешь изменить порт, используя флаг `--port`. Например, чтобы запустить Mintlify на порту 3333:
 
 ```bash
 mint dev --port 3333
 ```
 
-If you attempt to run Mintlify on a port that's already in use, it will use the next available port:
+Если порт уже занят, система автоматически выберет следующий доступный:
 
 ```md
 Port 3000 is already in use. Trying 3001 instead.
 ```
 
-## Mintlify versions
+## Версии Mintlify
 
-Please note that each CLI release is associated with a specific version of Mintlify. If your local preview does not align with the production version, please update the CLI:
+Каждый релиз CLI связан с конкретной версией Mintlify. Если твой локальный предпросмотр не совпадает с production версией, обнови CLI:
 
 ```bash
 npm mint update
 ```
 
-## Validating links
+## Проверка ссылок
 
-The CLI can assist with validating links in your documentation. To identify any broken links, use the following command:
+CLI может помочь с проверкой ссылок в документации. Чтобы найти неработающие ссылки, выполни:
 
 ```bash
 mint broken-links
 ```
 
-## Deployment
+## Развёртывание
 
-If the deployment is successful, you should see the following:
+При успешном развёртывании ты увидишь следующее сообщение:
 
 <Frame>
-  <img src="/images/checks-passed.png" alt="Screenshot of a deployment confirmation message that says All checks have passed." style={{ borderRadius: '0.5rem' }} />
+  <img src="/images/checks-passed.png" alt="Скриншот подтверждения успешного развёртывания с сообщением All checks have passed." style={{ borderRadius: '0.5rem' }} />
 </Frame>
 
-## Code formatting
+## Форматирование кода
 
-We suggest using extensions on your IDE to recognize and format MDX. If you're a VSCode user, consider the [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) for syntax highlighting, and [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) for code formatting.
+Рекомендуем использовать расширения для IDE, чтобы распознавать и форматировать MDX. Если ты используешь VSCode, рассмотри [MDX VSCode extension](https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx) для подсветки синтаксиса и [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) для форматирования.
 
-## Troubleshooting
+## Решение проблем
 
 <AccordionGroup>
-  <Accordion title='Error: Could not load the "sharp" module using the darwin-arm64 runtime'>
+  <Accordion title='Ошибка: Could not load the "sharp" module using the darwin-arm64 runtime'>
 
-    This may be due to an outdated version of node. Try the following:
-    1. Remove the currently-installed version of the CLI: `npm remove -g mint`
-    2. Upgrade to Node v19 or higher.
-    3. Reinstall the CLI: `npm i -g mint`
+    Это может быть из-за устаревшей версии Node.js. Попробуй следующее:
+    1. Удали установленную версию CLI: `npm remove -g mint`
+    2. Обнови Node.js до версии 19 или выше.
+    3. Переустанови CLI: `npm i -g mint`
   </Accordion>
 
-  <Accordion title="Issue: Encountering an unknown error">
-  
-    Solution: Go to the root of your device and delete the `~/.mintlify` folder. Then run `mint dev` again.
+  <Accordion title="Ошибка: Encountering an unknown error">
+
+    Решение: Перейди в корень диска и удали папку `~/.mintlify`. Затем снова выполни `mint dev`.
   </Accordion>
 </AccordionGroup>
 
-Curious about what changed in the latest CLI version? Check out the [CLI changelog](https://www.npmjs.com/package/mintlify?activeTab=versions).
+Интересно, что изменилось в последней версии CLI? Посмотри [changelog](https://www.npmjs.com/package/mintlify?activeTab=versions).

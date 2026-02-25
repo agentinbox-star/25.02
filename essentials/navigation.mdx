@@ -1,27 +1,27 @@
 ---
-title: 'Navigation'
-description: 'The navigation field in docs.json defines the pages that go in the navigation menu'
+title: 'Навигация'
+description: 'Поле navigation в docs.json определяет страницы в навигационном меню'
 icon: 'map'
 ---
 
-The navigation menu is the list of links on every website.
+Навигационное меню - это список ссылок на каждой странице вебсайта.
 
-You will likely update `docs.json` every time you add a new page. Pages do not show up automatically.
+Тебе нужно будет обновлять `docs.json` каждый раз, когда добавляешь новую страницу. Страницы не появляются автоматически.
 
-## Navigation syntax
+## Синтаксис навигации
 
-Our navigation syntax is recursive which means you can make nested navigation groups. You don't need to include `.mdx` in page names.
+Наш синтаксис навигации рекурсивный, что позволяет создавать вложенные группы навигации. Не нужно включать `.mdx` в названия страниц.
 
 <CodeGroup>
 
-```json Regular Navigation
+```json Обычная навигация
 "navigation": {
   "tabs": [
     {
-      "tab": "Docs",
+      "tab": "Документация",
       "groups": [
         {
-          "group": "Getting Started",
+          "group": "Начало работы",
           "pages": ["quickstart"]
         }
       ]
@@ -30,18 +30,18 @@ Our navigation syntax is recursive which means you can make nested navigation gr
 }
 ```
 
-```json Nested Navigation
+```json Вложенная навигация
 "navigation": {
   "tabs": [
     {
-      "tab": "Docs",
+      "tab": "Документация",
       "groups": [
         {
-          "group": "Getting Started",
+          "group": "Начало работы",
           "pages": [
             "quickstart",
             {
-              "group": "Nested Reference Pages",
+              "group": "Вложенные справочные страницы",
               "pages": ["nested-reference-page"]
             }
           ]
@@ -54,26 +54,26 @@ Our navigation syntax is recursive which means you can make nested navigation gr
 
 </CodeGroup>
 
-## Folders
+## Папки
 
-Simply put your MDX files in folders and update the paths in `docs.json`.
+Просто помести свои MDX файлы в папки и обнови пути в `docs.json`.
 
-For example, to have a page at `https://yoursite.com/your-folder/your-page` you would make a folder called `your-folder` containing an MDX file called `your-page.mdx`.
+Например, чтобы создать страницу на `https://yoursite.com/your-folder/your-page`, тебе нужно создать папку `your-folder` с MDX файлом `your-page.mdx`.
 
 <Warning>
 
-You cannot use `api` for the name of a folder unless you nest it inside another folder. Mintlify uses Next.js which reserves the top-level `api` folder for internal server calls. A folder name such as `api-reference` would be accepted.
+Ты не можешь использовать `api` как имя папки, если не вложишь его внутри другой папки. Mintlify использует Next.js, который зарезервировал папку `api` верхнего уровня для внутренних вызовов сервера. Название папки как `api-reference` было бы приемлемым.
 
 </Warning>
 
-```json Navigation With Folder
+```json Навигация с папкой
 "navigation": {
   "tabs": [
     {
-      "tab": "Docs",
+      "tab": "Документация",
       "groups": [
         {
-          "group": "Group Name",
+          "group": "Название группы",
           "pages": ["your-folder/your-page"]
         }
       ]
@@ -82,6 +82,6 @@ You cannot use `api` for the name of a folder unless you nest it inside another 
 }
 ```
 
-## Hidden pages
+## Скрытые страницы
 
-MDX files not included in `docs.json` will not show up in the sidebar but are accessible through the search bar and by linking directly to them.
+MDX файлы, не включённые в `docs.json`, не будут отображаться в боковой панели, но доступны через поиск и прямыми ссылками.

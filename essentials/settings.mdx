@@ -1,33 +1,33 @@
 ---
-title: 'Global Settings'
-description: 'Mintlify gives you complete control over the look and feel of your documentation using the docs.json file'
+title: 'Глобальные настройки'
+description: 'Mintlify дает полный контроль над внешним видом документации через файл docs.json'
 icon: 'gear'
 ---
 
-Every Mintlify site needs a `docs.json` file with the core configuration settings. Learn more about the [properties](#properties) below.
+Каждому Mintlify сайту нужен файл `docs.json` с основными параметрами конфигурации. Подробнее о [свойствах](#properties) ниже.
 
-## Properties
+## Свойства
 
 <ResponseField name="name" type="string" required>
-Name of your project. Used for the global title.
+Название твоего проекта. Используется для глобального заголовка.
 
-Example: `mintlify`
+Пример: `agentinbox`
 
 </ResponseField>
 
 <ResponseField name="navigation" type="Navigation[]" required>
-  An array of groups with all the pages within that group
-  <Expandable title="Navigation">
+  Массив групп со всеми страницами в пределах каждой группы
+  <Expandable title="Навигация">
     <ResponseField name="group" type="string">
-    The name of the group.
+    Название группы.
 
-    Example: `Settings`
+    Пример: `Настройки`
 
     </ResponseField>
     <ResponseField name="pages" type="string[]">
-    The relative paths to the markdown files that will serve as pages.
+    Относительные пути к markdown файлам, которые служат страницами.
 
-    Example: `["customization", "page"]`
+    Пример: `["customization", "page"]`
 
     </ResponseField>
 
