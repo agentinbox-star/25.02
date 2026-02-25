@@ -59,7 +59,14 @@
             "group": "Инструкции",
             "pages": [
               "essentials/v",
-              "essentials/l"
+              "essentials/l",
+              {
+                "group": "Domain",
+                "icon": "globe",
+                "pages": [
+                  "ispolzovanie-polzovatelskikh-domenov"
+                ]
+              }
             ]
           },
           {
