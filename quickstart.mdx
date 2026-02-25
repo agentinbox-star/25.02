@@ -16,15 +16,57 @@ icon: "bolt-lightning"
     Если у вас еще нет учетной записи, вы можете зарегистрироваться прямо из консоли. После входа вы сможете управлять своими входящими ящиками, просматривать аналитику и создавать API ключи.
   </Step>
   <Step title="Создайте API ключ">
-    Теперь, когда вы находитесь в консоли, вам нужно создать API ключ для аутентификации ваших запросов. Перейдите в раздел API Keys на панели управления консоли. <img src="file:95960235-a95c-4d4c-bb32-986b4629e984" alt="Снимок экрана создания API ключа" /> Щелкните "Create New API Key/Создать Новый API Ключ" и дайте ему описательное имя. После создания скопируйте API ключ и сохраните его в безопасном месте. Создайте файл `.env` в корневой папке вашего проекта и добавьте в него свой ключ. 
+    Теперь, когда вы находитесь в консоли, вам нужно создать API ключ для аутентификации ваших запросов. Перейдите в раздел API Keys на панели управления консоли. <img src="file:95960235-a95c-4d4c-bb32-986b4629e984" alt="Снимок экрана создания API ключа" /> Щелкните "Create New API Key/Создать Новый API Ключ" и дайте ему описательное имя. После создания скопируйте API ключ и сохраните его в безопасном месте. Создайте файл `.env` в корневой папке вашего проекта и добавьте в него свой ключ.
 
     Мы рекомендуем использовать переменные окружения для безопасного хранения ваших ключей.
   </Step>
   <Step title="Установите SDK или используйте API ключ">
+    `pip install agentinbox python-dotenv`
+
     Установите SDK AgentInbox, используя предпочитаемый вами менеджер пакетов. Мы также будем использовать библиотеку для загрузки переменной окружения из файла `.env`.
   </Step>
   <Step title="Создайте входящий ящик и отправьте письмо">
     Теперь вы готовы сделать свой первый вызов API. Создайте новый файл (например, `quickstart.py` или `quickstart.ts`) и добавьте следующий код. Этот скрипт инициализирует клиент AgentInbox, создает новый входящий ящик и отправляет тестовое письмо.
+
+    `import os`
+
+    `from dotenv import load_dotenv`
+
+    `from agentinbox import AgentInbox`
+
+    `# Load the API key from the .env file`
+
+    `load_dotenv()`
+
+    `api_key = os.getenv("AGENTINBOX_API_KEY")`
+
+    `# Initialize the client`
+
+    `client = AgentInbox(api_key=api_key)`
+
+    `# Create an inbox`
+
+    `print("Creating inbox...")`
+
+    `inbox = client.inboxes.create() # domain is optional`
+
+    `print("Inbox created successfully!")`
+
+    `print(inbox)`
+
+    `# Send Email`
+
+    `client.inboxes.messages.send(`
+
+    `inbox_id="your-email@example.com",`
+
+    `to="contact@agentinbox.ru",`
+
+    `subject="Hello from AgentInbox!",`
+
+    `text="This is my first email sent with the AgentInbox API."`
+
+    `)`
 
     <Note>
       Предкпреждаем, что SDK может находится в статусе разработки или проверки со стороны нашей команды.
@@ -33,15 +75,7 @@ icon: "bolt-lightning"
   <Step title="Запустите код">
     Выполните скрипт из вашего терминала.
 
-    <CodeBlocks>
-  ```bash title="Python"
-        python quickstart.py
-  ```
-
-  ```bash title="TypeScript"
-        npx ts-node quickstart.ts
-  ```
-</CodeBlocks>
+    `python quickstart.py`
 
     Вы должны увидеть детали вашего только что созданного входящего ящика, выведенные в консоль. Поздравляем, вы успешно создали свой первый входящий ящик AgentInbox!
   </Step>
@@ -52,5 +86,5 @@ icon: "bolt-lightning"
 Поздравляем, вы отправили свое первое письмо через AgentInbox. Но это не наша основная сила. Изучите полную мощь создания агентов, которые могут автономно отвечать, предпринимать действия, анализировать вложения, семантически искать в вашем входящем ящике, изучив нашу документацию и учебные материалы ниже.
 
 <Note>
-  Ищете другой язык? Напишите нам на [support@agentmail.cc](mailto:support@agentmail.cc) и мы вам поможем.
+  Ищете другой язык? Напишите нам на info@patternautomation.com и мы вам поможем.
 </Note>
