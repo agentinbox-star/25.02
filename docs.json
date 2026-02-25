@@ -9,13 +9,29 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Документация",
+          "icon": "book-open-cover",
+          "href": "https://mintlify.com/docs"
+        },
+        {
+          "anchor": "Блог",
+          "icon": "newspaper",
+          "href": "https://mintlify.com/blog"
+        }
+      ]
+    },
     "tabs": [
       {
-        "tab": "Гайды",
+        "tab": "Документация",
+        "icon": "book",
         "groups": [
           {
             "group": "Начало работы",
             "pages": [
+              "privetstvuem",
               "index",
               "quickstart",
               "development"
@@ -67,21 +83,7 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Документация",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Блог",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
   "logo": {
     "light": "/logo/light.svg",
