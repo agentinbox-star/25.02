@@ -19,26 +19,13 @@ icon: "comments"
 
 Это стандартный способ получить все беседы, связанные с одним агентом или `входящим ящиком`.
 
-<CodeBlocks>
-  ```python title="Python"
-    # Вам нужен ID входящего ящика для перечисления цепей.
-    inbox_id = "inbound-agent@agentmail.to"
+`# You'll need an inbox ID to list threads from.`
 
-    # Это получает все цепи в указанном входящем ящике
+`inbox_id = "inbound-agent@agentinbox.ru"`
 
-    inbox_threads = client.inboxes.threads.list(inbox_id=inbox_id)
-  ```
+`# This retrieves all threads within the specified Inbox`
 
-  ```typescript title="TypeScript"
-    // Вам нужен ID входящего ящика для перечисления цепей.
-    const inboxId = "inbound-agent@agentmail.to";
-
-    // Это получает все цепи в указанном входящем ящике
-    const inboxThreads = await client.inboxes.threads.list("inbound-agent@agentmail.to");
-
-    console.log(`Found ${inboxThreads.count} threads in Inbox ${inboxId}.`);
-  ```
-</CodeBlocks>
+`inbox_threads = client.inboxes.threads.list(inbox_id=inbox_id)`
 
 ### Перечисление `цепей` по всей `организации`
 
@@ -48,21 +35,11 @@ icon: "comments"
 - **Аналитических панелей:** Создание решения, где вам нужна видимость по всем входящим ящикам в организации
 - **Продвинутых рабочих процессов:** Системы, которые могут направлять или эскалировать беседы между различными агентами с разными разрешениями.
 
-<CodeBlocks>
-  ```python
-    # Не предоставляя inbox_id, мы получаем все цепи в организации
-    all_threads = client.threads.list()
+  `# By not providing an inbox_id, we get all threads in the organization`
 
-    print(f"Found {all_threads.count} threads across the entire organization.")
-  ```
+  `all_threads = client.threads.list()`
 
-  ```typescript title="TypeScript"
-    // Не предоставляя inboxId, мы получаем все цепи в организации
-    const allThreads = await client.threads.list();
-
-    console.log(`Found ${allThreads.count} threads across the entire organization.`);
-  ```
-</CodeBlocks>
+  `print(f"Found {all_threads.count} threads across the entire organization.")`
 
 <Callout>
   Мы активно разрабатываем семантический поиск для конечной точки перечисления цепей на уровне организации. Вскоре вы сможете найти `цепи` на основе смысла и концепций в `сообщениях`, а не только по ключевым словам.
@@ -72,27 +49,14 @@ icon: "comments"
 
 Вы также можете получить одну `цепь` по ее ID. Это вернет объект `цепь`, который обычно содержит список всех связанных с ней `сообщений` и их ID. Распространенный рабочий процесс — перечисление сообщений в цепи и вызов метода `messages.reply` на последнем.
 
-<CodeBlocks>
-  ```python
-    thread_id = "thread_456def"
+`thread_id = "thread_456def"`
 
-    # Это получает одну цепь и ее сообщения
+`# This retrieves a single thread and its messages`
 
-    thread = client.threads.get(
-    thread_id="thread_id"
-    )
+`thread = client.threads.get(`
 
-    print(f"Retrieved thread {thread.thread_id} with {len(thread.messages)} messages.")
-  ```
+`thread_id="thread_id"`
 
-  ```typescript title="TypeScript"
-    const threadId = "thread_456def";
+`)`
 
-    // Это получает одну цепь и ее сообщения
-    const thread = await client.threads.get(
-    	"thread_id"
-    )
-
-    console.log(`Retrieved thread ${thread.thread_id} with ${thread.messages.length} messages.`);
-  ```
-</CodeBlocks>
+`print(f"Retrieved thread {thread.thread_id} with {len(thread.messages)} messages.")`
