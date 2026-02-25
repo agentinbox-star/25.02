@@ -61,10 +61,11 @@
               "essentials/v",
               "essentials/l",
               {
-                "group": "Domain",
+                "group": "Домен",
                 "icon": "globe",
                 "pages": [
-                  "ispolzovanie-polzovatelskikh-domenov"
+                  "ispolzovanie-polzovatelskikh-domenov",
+                  "j"
                 ]
               }
             ]
