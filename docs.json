@@ -33,8 +33,7 @@
             "pages": [
               "privetstvuem",
               "index",
-              "quickstart",
-              "development"
+              "quickstart"
             ]
           },
           {
@@ -44,14 +43,14 @@
             ]
           },
           {
-            "group": "Настройка",
+            "group": "Интеграции",
             "pages": [
               "essentials/settings",
               "essentials/navigation"
             ]
           },
           {
-            "group": "Содержание и примеры",
+            "group": "Инструкции",
             "pages": [
               "essentials/markdown",
               "essentials/code",
@@ -60,12 +59,28 @@
             ]
           },
           {
-            "group": "AI инструменты",
+            "group": "Вебхуки  (Webhooks)",
             "pages": [
               "ai-tools/cursor",
               "ai-tools/claude-code",
               "ai-tools/windsurf"
             ]
+          },
+          {
+            "group": "Вебсокеты (WebSockets)",
+            "pages": []
+          },
+          {
+            "group": "Лучшие практики",
+            "pages": []
+          },
+          {
+            "group": "Примеры",
+            "pages": []
+          },
+          {
+            "group": "Ресурсы",
+            "pages": []
           }
         ]
       },
