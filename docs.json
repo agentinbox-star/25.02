@@ -58,10 +58,6 @@
           {
             "group": "Инструкции",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets",
               "essentials/v"
             ]
           },
