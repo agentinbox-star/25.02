@@ -52,8 +52,7 @@
             "pages": [
               "essentials/navyki",
               "essentials/mcp",
-              "essentials/open-claw",
-              "essentials/navigation"
+              "essentials/open-claw"
             ]
           },
           {
@@ -62,7 +61,8 @@
               "essentials/markdown",
               "essentials/code",
               "essentials/images",
-              "essentials/reusable-snippets"
+              "essentials/reusable-snippets",
+              "essentials/v"
             ]
           },
           {
