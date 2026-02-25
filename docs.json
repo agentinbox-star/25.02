@@ -38,6 +38,12 @@
             ]
           },
           {
+            "group": "Основной концепт",
+            "pages": [
+              "pochtovye-yaschiki"
+            ]
+          },
+          {
             "group": "Настройка",
             "pages": [
               "essentials/settings",
