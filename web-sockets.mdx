@@ -1,0 +1,375 @@
+---
+title: "WebSockets"
+---
+
+Потоковая передача событий электронной почты в реальном времени с низкой задержкой.
+
+WebSockets обеспечивают постоянное двусторонее соединение с AgentInbox для получения событий электронной почты в реальном времени. В отличие от веб-хуков, WebSockets не требуют открытого URL или внешних инструментов, таких как ngrok.
+
+## Зачем использовать WebSockets?
+
+| Функция     | Веб-хук                        | WebSocket                                 |
+| ----------- | ------------------------------ | ----------------------------------------- |
+| Установка   | Требуется открытый URL + ngrok | Нет необходимости во внешних инструментах |
+| Соединение  | HTTP запрос на событие         | Постоянное соединение                     |
+| Направление | AgentInbox → ваш сервер        | Двусторонне                               |
+| Брандмауэр  | Должен открыть порт            | Только исходящий                          |
+| Задержка    | HTTP round-trip                | Мгновенная потоковая передача             |
+
+---
+
+## Python SDK
+
+Python SDK предоставляет как синхронные, так и асинхронные клиенты WebSocket.
+
+### Асинхронное использование
+
+```python
+import asyncio
+from agentmail import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+
+client = AsyncAgentInbox(api_key="YOUR_API_KEY")
+
+async def main():
+    async with client.websockets.connect() as socket:
+        # Подпишитесь на входящие ящики
+        await socket.send_subscribe(Subscribe(inbox_ids=["agent@agentinbox.ru"]))
+
+        # Обрабатывайте события по мере их поступления
+        async for event in socket:
+            if isinstance(event, Subscribed):
+                print(f"Subscribed to: {event.inbox_ids}")
+            elif isinstance(event, MessageReceivedEvent):
+                print(f"New email from: {event.message.from_}")
+                print(f"Subject: {event.message.subject}")
+
+asyncio.run(main())
+```
+
+### Синхронное использование
+
+```python
+from agentmail import AgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+
+client = AgentInbox(api_key="YOUR_API_KEY")
+
+with client.websockets.connect() as socket:
+    # Подпишитесь на входящие ящики
+    socket.send_subscribe(Subscribe(inbox_ids=["agent@agentinbox.ru"]))
+
+    # Обрабатывайте события по мере их поступления
+    for event in socket:
+        if isinstance(event, Subscribed):
+            print(f"Subscribed to: {event.inbox_ids}")
+        elif isinstance(event, MessageReceivedEvent):
+            print(f"New email from: {event.message.from_}")
+            print(f"Subject: {event.message.subject}")
+```
+
+### Паттерн обработчика событий
+
+Вы также можете использовать обработчики событий вместо итерации:
+
+```python
+import asyncio
+from agentinbox import AsyncAgentInbox, Subscribe, EventType
+
+client = AsyncAgentInbox(api_key="YOUR_API_KEY")
+
+async def main():
+    async with client.websockets.connect() as socket:
+        # Зарегистрируйте обработчики событий
+        socket.on(EventType.OPEN, lambda _: print("Connected"))
+        socket.on(EventType.MESSAGE, lambda msg: print("Received:", msg))
+        socket.on(EventType.CLOSE, lambda _: print("Disconnected"))
+        socket.on(EventType.ERROR, lambda err: print("Error:", err))
+
+        # Подпишитесь и начните слушать
+        await socket.send_subscribe(Subscribe(inbox_ids=["agent@agentinbox.ru"]))
+        await socket.start_listening()
+
+asyncio.run(main())
+```
+
+Для синхронного использования с обработчиками событий запустите слушатель в фоновом потоке:
+
+```python
+import threading
+from agentinbox import AgentInbox, Subscribe, EventType
+
+client = AgentInbox(api_key="YOUR_API_KEY")
+
+with client.websockets.connect() as socket:
+    socket.on(EventType.OPEN, lambda _: print("Connected"))
+    socket.on(EventType.MESSAGE, lambda msg: print("Received:", msg))
+    socket.on(EventType.CLOSE, lambda _: print("Disconnected"))
+    socket.on(EventType.ERROR, lambda err: print("Error:", err))
+
+    socket.send_subscribe(Subscribe(inbox_ids=["agent@agentinbox.ru"]))
+
+    # Начните слушать в фоновом потоке
+    listener = threading.Thread(target=socket.start_listening, daemon=True)
+    listener.start()
+    listener.join()
+```
+
+---
+
+## TypeScript SDK
+
+TypeScript SDK предоставляет клиент WebSocket с автоматическим переподключением.
+
+### Базовое использование
+
+```typescript
+import { AgentInboxClient, AgentInbox } from "agentinbox";
+
+const client = new AgentInboxClient({
+  apiKey: process.env.AGENTINBOX_API_KEY,
+});
+
+async function main() {
+  const socket = await client.websockets.connect();
+
+  // Обработка событий
+  socket.on("open", () => {
+    console.log("Connected");
+
+    // Подпишитесь на входящие ящики после открытия соединения
+    socket.sendSubscribe({
+      type: "subscribe",
+      inboxIds: ["agent@agentinbox.ru"],
+    });
+  });
+
+  socket.on("message", (event: AgentInbox.Subscribed | AgentInbox.MessageReceivedEvent) => {
+    if (event.type === "subscribed") {
+      console.log("Subscribed to:", event.inboxIds);
+    } else if (event.type === "message_received") {
+      console.log("New email from:", event.message.from_);
+      console.log("Subject:", event.message.subject);
+    }
+  });
+
+  socket.on("close", (event) => {
+    console.log("Disconnected:", event.code, event.reason);
+  });
+
+  socket.on("error", (error) => {
+    console.error("Error:", error);
+  });
+}
+
+main();
+```
+
+### Использование React/Next.js
+
+Использование SDK с React:
+
+```typescript
+import { useEffect, useState } from "react";
+import { AgentInboxClient, AgentInbox } from "agentinbox";
+
+function useAgentMailWebSocket(apiKey: string, inboxIds: string[]) {
+  const [lastMessage, setLastMessage] = useState<AgentInbox.MessageReceivedEvent | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    const client = new AgentInboxClient({ apiKey });
+
+    let socket: Awaited<ReturnType<typeof client.websockets.connect>>;
+
+    async function connect() {
+      socket = await client.websockets.connect();
+
+      socket.on("open", () => {
+        setIsConnected(true);
+        socket.sendSubscribe({
+          type: "subscribe",
+          inboxIds,
+        });
+      });
+
+      socket.on("message", (event) => {
+        if (event.type === "message_received") {
+          setLastMessage(event);
+        }
+      });
+
+      socket.on("close", () => setIsConnected(false));
+    }
+
+    connect();
+    return () => socket?.close();
+  }, [apiKey, inboxIds.join(",")]);
+
+  return { lastMessage, isConnected };
+}
+```
+
+---
+
+## Опции подписки
+
+При подписке на события вы можете фильтровать по входящему ящику, поду или типу события:
+
+**Python:**
+
+```python
+from agentinbox import Subscribe
+
+# Подпишитесь на конкретные входящие ящики
+Subscribe(inbox_ids=["inbox1@agentinbox.ru", "inbox2@agentinbox.ru"])
+
+# Подпишитесь на поды
+Subscribe(pod_ids=["pod-id-1", "pod-id-2"])
+
+# Подпишитесь на определенные типы событий
+Subscribe(
+    inbox_ids=["agent@agentinbox.ru"],
+    event_types=["message.received", "message.sent"]
+)
+```
+
+**TypeScript:**
+
+```typescript
+// Подпишитесь на конкретные входящие ящики
+socket.sendSubscribe({
+  type: "subscribe",
+  inboxIds: ["inbox1@agentinbox.ru", "inbox2@agentinbox.ru"],
+});
+
+// Подпишитесь на поды
+socket.sendSubscribe({
+  type: "subscribe",
+  podIds: ["pod-id-1", "pod-id-2"],
+});
+
+// Подпишитесь на определенные типы событий
+socket.sendSubscribe({
+  type: "subscribe",
+  inboxIds: ["agent@agentinbox.ru"],
+  eventTypes: ["message.received", "message.sent"],
+});
+```
+
+---
+
+## Типы событий
+
+### События соединения
+
+| Событие      | Python       | TypeScript              | Описание              |
+| ------------ | ------------ | ----------------------- | --------------------- |
+| `subscribed` | `Subscribed` | `AgentInbox.Subscribed` | Подписка подтверждена |
+
+### События сообщений
+
+| Событие              | Python                   | TypeScript                          | Описание                 |
+| -------------------- | ------------------------ | ----------------------------------- | ------------------------ |
+| `message_received`   | `MessageReceivedEvent`   | `AgentInbox.MessageReceivedEvent`   | Получено новое письмо    |
+| `message_sent`       | `MessageSentEvent`       | `AgentInbox.MessageSentEvent`       | Письмо было отправлено   |
+| `message_delivered`  | `MessageDeliveredEvent`  | `AgentInbox.MessageDeliveredEvent`  | Письмо было доставлено   |
+| `message_bounced`    | `MessageBouncedEvent`    | `AgentInbox.MessageBouncedEvent`    | Письмо отскочило         |
+| `message_complained` | `MessageComplainedEvent` | `AgentInbox.MessageComplainedEvent` | Письмо отмечено как спам |
+| `message_rejected`   | `MessageRejectedEvent`   | `AgentInbox.MessageRejectedEvent`   | Письмо было отклонено    |
+
+### События домена
+
+| Событие           | Python                | TypeScript                       | Описание                  |
+| ----------------- | --------------------- | -------------------------------- | ------------------------- |
+| `domain_verified` | `DomainVerifiedEvent` | `AgentInbox.DomainVerifiedEvent` | Проверка домена завершена |
+
+---
+
+## Свойства сообщения
+
+Объект `event.message` содержит:
+
+| Python        | TypeScript    | Описание                            |
+| ------------- | ------------- | ----------------------------------- |
+| `inbox_id`    | `inboxId`     | Входящий ящик, получивший письмо    |
+| `message_id`  | `messageId`   | Уникальный ID сообщения             |
+| `thread_id`   | `threadId`    | ID цепи беседы                      |
+| `from_`       | `from_`       | Адрес электронной почты отправителя |
+| `to`          | `to`          | Список получателей                  |
+| `subject`     | `subject`     | Строка темы                         |
+| `text`        | `text`        | Простой текст тела                  |
+| `html`        | `html`        | HTML тело (если присутствует)       |
+| `attachments` | `attachments` | Список вложений                     |
+
+---
+
+## Обработка ошибок
+
+**Python:**
+
+```python
+from agentinbox import AsyncAgentInbox, Subscribe, MessageReceivedEvent
+from agentinbox.core.api_error import ApiError
+
+client = AsyncAgentInbox(api_key="YOUR_API_KEY")
+
+async def main():
+    try:
+        async with client.websockets.connect() as socket:
+            await socket.send_subscribe(Subscribe(inbox_ids=["agent@agentinbox.ru"]))
+
+            async for event in socket:
+                if isinstance(event, MessageReceivedEvent):
+                    await process_email(event.message)
+
+    except ApiError as e:
+        print(f"API error: {e.status_code} - {e.body}")
+    except Exception as e:
+        print(f"Connection error: {e}")
+```
+
+**TypeScript:**
+
+```typescript
+import { AgentInboxClient, AgentInbox, AgentInboxError } from "agentmail";
+
+const client = new AgentInboxClient({
+  apiKey: process.env.AGENTINBOX_API_KEY,
+});
+
+async function main() {
+  try {
+    const socket = await client.websockets.connect();
+
+    socket.on("open", () => {
+      socket.sendSubscribe({
+        type: "subscribe",
+        inboxIds: ["agent@agentinbox.ru"],
+      });
+    });
+
+    socket.on("message", (event: AgentInbox.MessageReceivedEvent) => {
+      if (event.type === "message_received") {
+        processEmail(event.message);
+      }
+    });
+
+    socket.on("error", (error) => {
+      console.error("WebSocket error:", error);
+    });
+
+    socket.on("close", (event) => {
+      console.log("Disconnected:", event.code, event.reason);
+    });
+  } catch (err) {
+    if (err instanceof AgentInboxError) {
+      console.error(`API error: ${err.statusCode} - ${err.message}`);
+    } else {
+      console.error("Connection error:", err);
+    }
+  }
+}
+
+main();
+```
+
+---

@@ -82,7 +82,9 @@
           },
           {
             "group": "Вебсокеты (WebSockets)",
-            "pages": []
+            "pages": [
+              "web-sockets"
+            ]
           },
           {
             "group": "Лучшие практики",
