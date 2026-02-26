@@ -115,7 +115,8 @@
           {
             "group": "Безопасность и Приватность",
             "pages": [
-              "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc"
+              "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc",
+              "sootvetstvie-soc-2"
             ]
           }
         ]
