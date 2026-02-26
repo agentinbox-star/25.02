@@ -105,7 +105,9 @@
           },
           {
             "group": "Ресурсы",
-            "pages": []
+            "pages": [
+              "chasto-zadavaemye-voprosy-faq"
+            ]
           }
         ]
       },
