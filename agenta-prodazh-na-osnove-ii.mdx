@@ -1,0 +1,721 @@
+---
+title: "Агента продаж на основе ИИ"
+---
+
+Пошаговое руководство по построению агента продаж на основе ИИ, который использует WebSocket для обработки писем в реальном времени без опроса или веб-хуков.
+
+## Обзор
+
+Узнайте, как создать агента продаж в реальном времени, который мгновенно обрабатывает письма, используя соединения WebSocket. В отличие от агентов на основе веб-хуков, которые требуют ngrok и открытые URL, этот подход WebSocket подключается непосредственно к AgentInbox для истинной обработки в реальном времени с минимальной настройкой.
+
+Этот агент демонстрирует практический рабочий процесс продаж: менеджер поручает агенту охват клиентов, который затем автономно обрабатывает всю беседу, держа менеджера в курсе ключевых сигналов.
+
+## Что вы будете создавать
+
+К концу этого руководства у вас будет работающий агент продаж, который:
+
+1. **Подключается через WebSocket** для мгновенной обработки писем в реальном времени
+2. **Обрабатывает письма менеджера** путем извлечения информации о клиенте и отправки персонализированного аутрича
+3. **Обрабатывает ответы клиентов** с помощью ответов на основе ИИ с учетом контекста
+4. **Уведомляет менеджера** когда клиенты проявляют сильные сигналы покупки
+
+Вот рабочий процесс:
+
+```
+Менеджер отправляет письмо с информацией о клиенте
+         ↓
+    Агент извлекает адрес электронной почты клиента
+         ↓
+    Агент создает персонализированное предложение → Отправляет клиенту
+         ↓
+    Агент подтверждает менеджеру
+         ↓
+    [Клиент отвечает]
+         ↓
+    Агент обнаруживает намерение + создает ответ на основе ИИ
+         ↓
+    Если заинтересован → Уведомляет менеджера
+```
+
+## WebSocket vs Webhook: почему WebSocket?
+
+| Функция     | Подход с Webhook             | Подход с WebSocket            |
+| ----------- | ---------------------------- | ----------------------------- |
+| Установка   | Требует ngrok + открытый URL | Не нужны внешние инструменты  |
+| Архитектура | Flask сервер + HTTP          | Чистый асинхронный Python     |
+| Задержка    | HTTP round-trip              | Мгновенная потоковая передача |
+| Брандмауэр  | Должен открыть порт          | Только исходящий              |
+
+Для получения дополнительной информации см. [Справку API WebSocket](/api-reference/websockets) и **документацию Python SDK WebSocket**.
+
+## Предварительные требования
+
+Перед началом убедитесь, что у вас есть:
+
+<Callout>
+  **Необходимо:**
+
+  - Python 3.11 или выше установлен
+  - Учетная запись **AgentInbox** и API ключ
+  - Учетная запись [OpenAI](https://platform.openai.com) и API ключ
+</Callout>
+
+## Настройка проекта
+
+### Шаг 1: создайте каталог проекта
+
+Создайте новый каталог для вашего агента:
+
+```bash
+mkdir sales-agent-websocket
+cd sales-agent-websocket
+```
+
+### Шаг 2: создайте код агента
+
+Создайте файл с именем `main.py` и вставьте следующий код:
+
+<Accordion title="Нажмите, чтобы просмотреть полный код main.py">
+  ```python
+    """
+    Agent продаж используя AgentInbox WebSocket
+  
+    Это простой пример, показывающий, как:
+    - Подключиться к AgentInbox через WebSocket для обработки писем в реальном времени
+    - Использовать OpenAI для обработки разговоров о продажах
+    - Отправлять письма клиентам и отвечать на ответы
+    """
+  
+    import asyncio
+    import os
+    import re
+    from dotenv import load_dotenv
+    from agentmail import AsyncAgentMail, Subscribe, Subscribed, MessageReceivedEvent
+    from openai import AsyncOpenAI
+  
+    # Загрузите переменные окружения
+    load_dotenv()
+  
+    # Инициализируйте клиентов
+    agentmail = AsyncAgentMail(api_key=os.getenv("AGENTMAIL_API_KEY"))
+    openai = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+  
+    # Простая история беседы (thread_id -> сообщения)
+    conversations = {}
+  
+    # Сохраните адрес электронной почты менеджера для уведомлений
+    manager_email = None
+  
+  
+    def extract_email(from_field):
+        """Извлеките адрес электронной почты из формата 'Name <email@example.com>'"""
+        match = re.search(r'<(.+?)>', from_field)
+        return match.group(1) if match else from_field
+  
+  
+    def is_from_manager(email_body):
+        """Простая проверка, если письмо от менеджера по продажам (содержит информацию о клиенте)"""
+        keywords = ['customer', 'lead', 'contact', 'reach out', 'email']
+        return any(keyword in email_body.lower() for keyword in keywords)
+  
+  
+    def extract_customer_info(email_body):
+        """Извлеките адрес электронной почты клиента из сообщения менеджера"""
+        email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        emails = re.findall(email_pattern, email_body)
+  
+        # Верните первый найденный адрес электронной почты (должен быть адрес электронной почты клиента в теле сообщения)
+        if emails:
+            return emails[0]
+        return None
+  
+  
+    async def get_ai_response(messages, system_prompt):
+        """Получите ответ от OpenAI"""
+        try:
+            response = await openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    *messages
+                ],
+                temperature=0.7,
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Ошибка получения ответа ИИ: {e}")
+            return "Извините, я столкнулся с ошибкой. Пожалуйста, попробуйте еще раз."
+  
+  
+    async def send_email(inbox_id, to_email, subject, body):
+        """Отправьте новое письмо"""
+        try:
+            await agentmail.inboxes.messages.send(
+                inbox_id=inbox_id,
+                to=[to_email],
+                subject=subject,
+                text=body
+            )
+            print(f"✓ Письмо отправлено на {to_email}")
+        except Exception as e:
+            print(f"Ошибка при отправке письма: {e}")
+  
+  
+    async def reply_to_email(inbox_id, message_id, to_email, body):
+        """Ответьте на письмо"""
+        try:
+            await agentmail.inboxes.messages.reply(
+                inbox_id=inbox_id,
+                message_id=message_id,
+                to=[to_email],  # Требуемый параметр для ответов
+                text=body
+            )
+            print(f"✓ Ответ отправлен на {to_email}")
+        except Exception as e:
+            print(f"Ошибка при ответе: {e}")
+  
+  
+    async def handle_manager_email(inbox_id, message_id, from_email, subject, body):
+        """Обработайте письмо от менеджера по продажам - извлеките клиента и отправьте торговое предложение"""
+        global manager_email
+        manager_email = from_email  # Запомните менеджера для будущих уведомлений
+  
+        print(f"\n📧 Письмо от МЕНЕДЖЕРА: {from_email}")
+  
+        # Извлеките адрес электронной почты клиента
+        customer_email = extract_customer_info(body)
+        print(f"→ Извлеченный адрес электронной почты клиента: {customer_email}")
+  
+        if not customer_email:
+            await reply_to_email(
+                inbox_id,
+                message_id,
+                from_email,  # Ответьте менеджеру
+                "Я не смог найти адрес электронной почты клиента. Пожалуйста, включите его в ваше сообщение."
+            )
+            return
+  
+        # Создайте торговое предложение используя ИИ
+        system_prompt = """Вы полезный агент по продажам. Создайте краткое профессиональное письмо о продажах
+        на основе запроса менеджера. Держите его менее 150 слов. Будьте дружелюбны и профессиональны."""
+  
+        messages = [{"role": "user", "content": f"Создайте письмо о продажах на основе этого: {body}"}]
+        sales_pitch = await get_ai_response(messages, system_prompt)
+  
+        # Отправьте письмо клиенту
+        await send_email(
+            inbox_id,
+            customer_email,
+            f"Введение: {subject}" if subject else "Быстрое введение",
+            sales_pitch
+        )
+  
+        # Подтвердите менеджеру
+        await reply_to_email(
+            inbox_id,
+            message_id,
+            from_email,  # Ответьте менеджеру
+            f"✓ Я отправил письмо с введением на адрес {customer_email}.\n\nВот что я отправил:\n\n{sales_pitch}"
+        )
+  
+  
+    async def handle_customer_email(inbox_id, message_id, thread_id, from_email, subject, body):
+        """Обработайте письмо от клиента - отслеживайте беседу, обнаруживайте намерение и уведомляйте менеджера"""
+        print(f"\n📧 Письмо от КЛИЕНТА: {from_email}")
+  
+        # Отслеживайте историю беседы
+        if thread_id not in conversations:
+            conversations[thread_id] = []
+        conversations[thread_id].append({"role": "user", "content": body})
+  
+        # Обнаружите намерение клиента
+        intent_keywords = {
+            'interested': ['interested', 'demo', 'meeting', 'tell me more', 'sounds good'],
+            'not_interested': ['not interested', 'no thank', 'not right now', 'maybe later'],
+            'question': ['?', 'how', 'what', 'when', 'why', 'can you']
+        }
+  
+        body_lower = body.lower()
+        intent = 'question'  # по умолчанию
+        for key, keywords in intent_keywords.items():
+            if any(keyword in body_lower for keyword in keywords):
+                intent = key
+                break
+  
+        # Создайте ответ на основе ИИ
+        system_prompt = """Вы полезный агент по продажам. Отвечайте на вопросы клиентов профессионально
+        и полезно. Держите ответы краткими (менее 100 слов). Будьте дружелюбны, но профессиональны."""
+  
+        response = await get_ai_response(conversations[thread_id], system_prompt)
+  
+        # Ответьте клиенту
+        await reply_to_email(inbox_id, message_id, from_email, response)
+  
+        # Уведомите менеджера при сильном сигнале намерения
+        if manager_email and intent in ['interested', 'not_interested']:
+            status = "проявляет интерес" if intent == 'interested' else "не заинтересован в данный момент"
+            await send_email(
+                inbox_id,
+                manager_email,
+                f"Обновление: {from_email}",
+                f"Клиент {from_email} {status}.\n\nИх сообщение:\n{body}\n\nМой ответ:\n{response}"
+            )
+            print(f"→ Уведомлен менеджер о намерении {intent} клиента")
+  
+        # Обновите историю беседы
+        conversations[thread_id].append({"role": "assistant", "content": response})
+  
+  
+    async def handle_new_email(message):
+        """Обработайте входящее письмо из WebSocket"""
+        try:
+            # Извлеките данные сообщения, используя атрибуты объекта
+            inbox_id = message.inbox_id
+            message_id = message.message_id
+            thread_id = message.thread_id
+            from_field = message.from_ or ""  # SDK использует from_
+            from_email = extract_email(from_field)
+            subject = message.subject or ""
+            body = message.text or ""  # SDK использует text для тела
+  
+            print(f"\n{'='*60}")
+            print(f"Новое письмо от: {from_email}")
+            print(f"Тема: {subject}")
+            print(f"{'='*60}")
+  
+            # Маршрутизируйте на основе содержимого письма
+            if is_from_manager(body):
+                await handle_manager_email(inbox_id, message_id, from_email, subject, body)
+            else:
+                await handle_customer_email(inbox_id, message_id, thread_id, from_email, subject, body)
+  
+        except Exception as e:
+            print(f"Ошибка при обработке письма: {e}")
+  
+  
+    async def main():
+        """Основной цикл WebSocket"""
+        inbox_username = os.getenv("INBOX_USERNAME", "sales-agent")
+        inbox_id = f"{inbox_username}@agentmail.to"
+  
+        print(f"\nAgent продаж начинает работу...")
+        print(f"Входящий ящик: {inbox_id}")
+        print(f"✓ Подключение к AgentInbox WebSocket...")
+  
+        # Подключитесь к WebSocket
+        try:
+            async with agentmail.websockets.connect() as socket:
+                print(f"✓ Подключено! Ожидание писем...\n")
+  
+                # Подпишитесь на входящий ящик
+                await socket.send_subscribe(Subscribe(inbox_ids=[inbox_id]))
+  
+                # Слушайте события
+                async for event in socket:
+                    if isinstance(event, Subscribed):
+                        print(f"✓ Подписано на: {event.inbox_ids}\n")
+  
+                    elif isinstance(event, MessageReceivedEvent):
+                        print(f"📨 Новое письмо получено!")
+                        await handle_new_email(event.message)
+  
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            print("\n\nЗавершение работы корректно...")
+        except Exception as e:
+            print(f"\nОшибка: {e}")
+  
+  
+    def run():
+        """Запустите основную функцию"""
+        try:
+            asyncio.run(main())
+        except KeyboardInterrupt:
+            print("\n✓ Завершение завершено")
+  
+  
+    if __name__ == "__main__":
+        run()
+  ```
+</Accordion>
+
+### Шаг 3: создайте файл требований
+
+Создайте файл с именем `requirements.txt`:
+
+```txt
+agentinbox>=0.0.19
+openai>=1.0.0
+python-dotenv>=1.0.0
+```
+
+### Шаг 4: установите зависимости
+
+Установите требуемые пакеты Python:
+
+```bash
+pip install -r requirements.txt
+# или с pyproject.toml
+pip install .
+```
+
+### Шаг 5: настройте переменные окружения
+
+Создайте файл `.env` со своими учетными данными:
+
+```env
+# Конфигурация AgentInbox
+AGENTINBOX_API_KEY=your_agentinbox_api_key_here
+
+# Конфигурация OpenAI
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Параметры входящего ящика
+INBOX_USERNAME=sales-agent
+```
+
+<Callout>
+  **Примечание:** в отличие от агентов на основе веб-хуков, вам не нужны ngrok или открытый URL. Соединение WebSocket только исходящее, поэтому оно работает за брандмауэрами без переадресации портов.
+</Callout>
+
+## разбор кода
+
+Давайте поймем, как работает агент, разбив ключевые компоненты.
+
+### обзор архитектуры
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      Ваш Python скрипт                      │
+│                                                              │
+│  ┌──────────────┐     ┌──────────────┐     ┌─────────────┐  │
+│  │ AsyncAgent   │────▶│ WebSocket    │────▶│ Event       │  │
+│  │ Mail Client  │     │ Connection   │     │ Handler     │  │
+│  └──────────────┘     └──────────────┘     └─────────────┘  │
+│         │                    ▲                    │          │
+│         │                    │                    ▼          │
+│         │              События в              ┌─────────────┐  │
+│         │              реальном времени        │ OpenAI      │  │
+│         │                                   │ Integration │  │
+│         ▼                                   └─────────────┘  │
+│  ┌──────────────┐                                           │
+│  │ Send/Reply   │◀──────────────────────────────────────────│
+│  │ Emails       │                                           │
+│  └──────────────┘                                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    ┌──────────────────┐
+                    │   AgentInbox     │
+                    │   Cloud          │
+                    └──────────────────┘
+```
+
+### 1. Настройка соединения WebSocket
+
+Основной частью этого агента является соединение WebSocket:
+
+```python
+from agentmail import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+
+# Инициализируйте асинхронный клиент
+agentmail = AsyncAgentInbox(api_key=os.getenv("AGENTINBOX_API_KEY"))
+
+# Подключитесь и подпишитесь
+async with agentmail.websockets.connect() as socket:
+    await socket.send_subscribe(Subscribe(inbox_ids=[inbox_id]))
+```
+
+**Ключевые моменты:**
+
+- `AsyncAgentInbox` — асинхронная версия клиента
+- `Agentinbox.websockets.connect()` создает соединение WebSocket
+- `Subscribe` указывает, какие входящие ящики отслеживать
+
+### 2. цикл обработки событий
+
+Агент использует асинхронный паттерн итератора для обработки событий:
+
+```python
+async for event in socket:
+    if isinstance(event, Subscribed):
+        print(f"✓ Подписано на: {event.inbox_ids}")
+
+    elif isinstance(event, MessageReceivedEvent):
+        await handle_new_email(event.message)
+```
+
+**Типы событий:**
+
+- `Subscribed` — подтверждение успешной подписки
+- `MessageReceivedEvent` — новое письмо прибыло во входящий ящик
+
+### 3. процесс обработки писем
+
+Агент маршрутизирует письма на основе содержимого:
+
+```python
+async def handle_new_email(message):
+    # Извлеките поля из объекта сообщения
+    inbox_id = message.inbox_id
+    message_id = message.message_id
+    thread_id = message.thread_id
+    from_field = message.from_ or ""  # Примечание: SDK использует from_
+    from_email = extract_email(from_field)
+    subject = message.subject or ""
+    body = message.text or ""
+
+    # Маршрутизируйте на основе содержимого письма
+    if is_from_manager(body):
+        await handle_manager_email(inbox_id, message_id, from_email, subject, body)
+    else:
+        await handle_customer_email(inbox_id, message_id, thread_id, from_email, subject, body)
+```
+
+**Вспомогательная функция извлечения электронной почты:**
+
+```python
+def extract_email(from_field):
+    """Извлеките адрес электронной почты из формата 'Name <email@example.com>'"""
+    match = re.search(r'<(.+?)>', from_field)
+    return match.group(1) if match else from_field
+```
+
+### 4. обработчик писем менеджера
+
+Когда менеджер отправляет письмо с информацией о клиенте:
+
+```python
+async def handle_manager_email(inbox_id, message_id, from_email, subject, body):
+    global manager_email
+    manager_email = from_email  # Запомните для уведомлений
+
+    # Извлеките адрес электронной почты клиента, используя regex
+    customer_email = extract_customer_info(body)
+
+    if not customer_email:
+        await reply_to_email(inbox_id, message_id, from_email,
+            "Я не смог найти адрес электронной почты клиента. Пожалуйста, включите его.")
+        return
+
+    # Создайте торговое предложение на основе ИИ
+    sales_pitch = await get_ai_response(
+        [{"role": "user", "content": f"Создайте письмо о продажах на основе: {body}"}],
+        "Вы полезный агент по продажам. Создайте краткое профессиональное письмо..."
+    )
+
+    # Отправьте клиенту
+    await send_email(inbox_id, customer_email, f"Введение: {subject}", sales_pitch)
+
+    # Подтвердите менеджеру
+    await reply_to_email(inbox_id, message_id, from_email,
+        f"✓ Отправлено письмо на {customer_email}.\n\nСодержание:\n{sales_pitch}")
+```
+
+### 5. обработчик писем клиента с обнаружением намерения
+
+Агент отслеживает беседы и обнаруживает намерение клиента:
+
+```python
+async def handle_customer_email(inbox_id, message_id, thread_id, from_email, subject, body):
+    # Отслеживайте историю беседы для каждого потока
+    if thread_id not in conversations:
+        conversations[thread_id] = []
+    conversations[thread_id].append({"role": "user", "content": body})
+
+    # Обнаружите намерение с помощью сопоставления ключевых слов
+    intent_keywords = {
+        'interested': ['interested', 'demo', 'meeting', 'tell me more'],
+        'not_interested': ['not interested', 'no thank', 'maybe later'],
+        'question': ['?', 'how', 'what', 'when', 'why']
+    }
+
+    intent = 'question'  # по умолчанию
+    for key, keywords in intent_keywords.items():
+        if any(kw in body.lower() for kw in keywords):
+            intent = key
+            break
+
+    # Создайте контекстный ответ на основе ИИ, используя историю беседы
+    response = await get_ai_response(conversations[thread_id], system_prompt)
+
+    # Ответьте клиенту
+    await reply_to_email(inbox_id, message_id, from_email, response)
+
+    # Уведомите менеджера о сильных сигналах
+    if manager_email and intent in ['interested', 'not_interested']:
+        await send_email(inbox_id, manager_email, f"Обновление: {from_email}",
+            f"Клиент {intent}.\n\nИх сообщение:\n{body}")
+```
+
+### 6. создание ответа на основе ИИ
+
+Агент использует OpenAI для создания ответов:
+
+```python
+async def get_ai_response(messages, system_prompt):
+    try:
+        response = await openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                *messages  # Включите историю беседы
+            ],
+            temperature=0.7,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"Ошибка: {e}")
+        return "Извините, я столкнулся с ошибкой."
+```
+
+**Ключевые моменты:**
+
+- Включает полную историю беседы для контекста
+- Корректная обработка ошибок с резервным сообщением
+
+## запуск агента
+
+Запустите агента:
+
+```bash
+python main.py
+```
+
+Вы должны увидеть результат, похожий на это:
+
+```
+Агент продаж начинает работу...
+Входящий ящик: sales-agent@agentinbox.ru
+✓ Подключение к AgentInbox WebSocket...
+✓ Подключено! Ожидание писем...
+
+✓ Подписано на: ['sales-agent@agentinbox.ru']
+```
+
+<Callout>
+  **Успех!** Ваш агент теперь работает и слушает письма в реальном времени.
+
+  Оставьте это окно терминала открытым — закрытие его остановит агента.
+</Callout>
+
+## тестирование вашего агента
+
+Давайте проверим, что все работает с несколькими тестовыми сценариями.
+
+### тестовый сценарий: запрос аутрича менеджера
+
+**Отправьте это письмо с вашей личной электронной почты:**
+
+```
+На: sales-agent@agentinbox.ru
+Тема: New lead - AI startup
+Текст: Please reach out to this customer: customer-email@gmail.com
+      They're interested in our API platform.
+```
+
+**Ожидаемый результат консоли:**
+
+```
+============================================================
+New email from: your-email@gmail.com
+Subject: New lead - AI startup
+============================================================
+
+📧 Письмо от МЕНЕДЖЕРА: your-email@gmail.com
+→ Извлеченный адрес электронной почты клиента: customer-email@gmail.com
+✓ Письмо отправлено на customer-email@gmail.com
+✓ Ответ отправлен на your-email@gmail.com
+```
+
+**Вы получите:** письмо с подтверждением вместе с торговым предложением, которое было отправлено.
+
+<Callout>
+  **Это работает!** Агент обработал письма в реальном времени, создал ответы на основе ИИ и уведомил вас о заинтересованном клиенте.
+</Callout>
+
+## кастомизация
+
+### изменение обнаружения намерения
+
+Обновите словарь `intent_keywords` в `handle_customer_email()`:
+
+```python
+intent_keywords = {
+    'interested': ['interested', 'demo', 'meeting', 'pricing', 'sign up'],
+    'not_interested': ['not interested', 'unsubscribe', 'remove me'],
+    'question': ['?', 'how', 'what', 'when', 'can you'],
+    'urgent': ['urgent', 'asap', 'immediately']  # Добавьте новое намерение
+}
+```
+
+### добавление подписки на несколько входящих ящиков
+
+Подпишитесь на несколько входящих ящиков:
+
+```python
+await socket.send_subscribe(Subscribe(inbox_ids=[
+    "sales-agent@agentinbox.ru",
+    "support-agent@agentinbox.ru",
+    "info@yourdomain.com"
+]))
+```
+
+## решение проблем
+
+### распространенные проблемы
+
+<Accordion title="WebSocket соединение отклонено или превышено время ожидания">
+  **Проблема:** невозможно подключиться к WebSocket AgentInbox.
+
+  **Решения:**
+
+  1. Проверьте, что ваш API ключ правильный:
+
+  ```python
+    client = AsyncAgentInbox(api_key="your-key")
+    print(await client.inboxes.list())  # Должна успешно выполниться
+  ```
+
+  2. Проверьте соединение Интернета и параметры брандмауэра
+  3. Убедитесь, что вы используете `agentmail>=0.0.19`, который включает поддержку WebSocket:
+
+  ```bash
+    pip show agentmail
+  ```
+</Accordion>
+
+<Accordion title="Письма не получаются">
+  **Проблема:** агент работает, но письма не поступают.
+
+  **Контрольный список:**
+
+  1. Убедитесь, что входящий ящик существует:
+
+  ```python
+    client = AsyncAgentInbox()
+    print(await client.inboxes.get("sales-agent@agentinbox.ru"))
+  ```
+
+  2. Проверьте подтверждение подписки в выходе консоли
+  3. Отправьте тестовое письмо на правильный адрес входящего ящика
+  4. Убедитесь, что письмо не фильтруется как спам
+</Accordion>
+
+<Accordion title="Агент крушится с ошибками asyncio">
+  **Проблема:** исключения, связанные с асинхронностью.
+
+  **Решения:**
+
+  1. Убедитесь, что установлен Python 3.11+:
+
+  ```bash
+    python --version
+  ```
+
+  2. Не смешивайте синхронный и асинхронный код неправильно
+  3. Используйте `asyncio.run(main())` как точку входа
+</Accordion>
+
+---
+
+Если вы создадите что-то крутое с AgentInbox, мы будем рады это услышать. Поделитесь в нашем канале в **Telegram**.
