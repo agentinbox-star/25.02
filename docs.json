@@ -111,6 +111,12 @@
               "risoedinyaytes-k-soobschestvu-agent-inbox",
               "podderzhka"
             ]
+          },
+          {
+            "group": "Безопасность и Приватность",
+            "pages": [
+              "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc"
+            ]
           }
         ]
       },
