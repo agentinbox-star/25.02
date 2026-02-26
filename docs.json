@@ -12,14 +12,22 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Документация",
-          "icon": "book-open-cover",
-          "href": "https://mintlify.com/docs"
+          "anchor": "AgentInbox",
+          "icon": "envelope",
+          "color": {
+            "light": "#000000",
+            "dark": "#000000"
+          },
+          "href": "https://patternautomation.com"
         },
         {
           "anchor": "Блог",
-          "icon": "newspaper",
-          "href": "https://mintlify.com/blog"
+          "icon": "rocket-launch",
+          "color": {
+            "light": "#000000",
+            "dark": "#000000"
+          },
+          "href": "https://neuro-agent.ru"
         }
       ]
     },
