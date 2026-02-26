@@ -1,0 +1,867 @@
+---
+title: "Агент автоответчик на электронные письма"
+---
+
+Создайте простого агента, который автоматически отвечает на входящие письма с персонализированными сообщениями.
+
+## Обзор
+
+Узнайте, как создать агента автоответчика на электронные письма, который автоматически отвечает на входящие письма. Этот удобный для начинающих пример демонстрирует основные концепции создания с AgentInbox: получение веб-хуков, обработка событий электронной почты и отправка автоматических ответов.
+
+## Что вы будете создавать
+
+К концу этого руководства у вас будет работающий агент автоответчика, который:
+
+1. **Получает входящие письма** на выделенный входящий ящик AgentInbox
+2. **Обрабатывает события веб-хуков** в реальном времени
+3. **Извлекает информацию об отправителе** (имя и адрес электронной почты)
+4. **Генерирует персонализированные ответы** с помощью шаблона
+5. **Отправляет автоматические ответы** обратно отправителю
+
+Вот как выглядит пользовательский опыт:
+
+```
+Пользователь отправляет письмо → AgentInbox получает → агент обрабатывает → пользователь получает ответ
+                         ↓
+              "Привет Андрей, спасибо за письмо!
+               Я получил сообщение и отвечу тебе
+               в течение 24 часов..."
+```
+
+## Предварительные требования
+
+Перед началом убедитесь, что у вас есть:
+
+<Callout>
+  **Необходимо:**
+
+  - Python 3.8 или выше установлен
+  - Учетная запись AgentInbox и API ключ
+  - Учетная запись [ngrok](https://ngrok.com) (бесплатная версия работает)
+</Callout>
+
+## Настройка проекта
+
+### Шаг 1: создайте каталог проекта
+
+Создайте новый каталог для вашего агента:
+
+```bash
+mkdir auto-reply-agent
+cd auto-reply-agent
+```
+
+### Шаг 2: создайте код агента
+
+Создайте файл с именем `agent.py` и вставьте следующий код:
+
+<Accordion title="Нажмите, чтобы просмотреть полный код agent.py">
+  ```python
+    """
+    Агент автоответчик на электронные письма
+  
+    Простой пример, показывающий, как создать бота автоответчика на электронные письма с AgentInbox.
+    Этот агент автоматически отвечает на входящие письма с персонализированными сообщениями.
+    """
+  
+    import os
+    from dotenv import load_dotenv
+  
+    # Загрузите переменные окружения перед импортом AgentInbox
+    load_dotenv()
+  
+    from flask import Flask, request, Response
+    import ngrok
+    from agentmail import AgentInbox
+    import threading
+  
+    # Конфигурация
+    PORT = 8080
+    INBOX_USERNAME = os.getenv("INBOX_USERNAME", "auto-reply")
+    WEBHOOK_DOMAIN = os.getenv("WEBHOOK_DOMAIN")
+  
+    # Инициализируйте Flask приложение и клиент AgentInbox
+    app = Flask(__name__)
+    client = AgentMail()
+    processed_messages = set()  # Отслеживайте обработанные ID сообщений для предотвращения дубликатов
+  
+  
+    def setup_agentmail():
+        """Создайте входящий ящик и веб-хук с идемпотентностью."""
+        print("Настройка инфраструктуры AgentInbox...")
+  
+        # Создайте входящий ящик (или получите существующий)
+        try:
+            inbox = client.inboxes.create(
+                username=INBOX_USERNAME,
+                client_id=f"{INBOX_USERNAME}-inbox"
+            )
+            print(f"✓ Входящий ящик создан: {inbox.inbox_id}")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                inbox_id = f"{INBOX_USERNAME}@agentmail.to"
+                class SimpleInbox:
+                    def __init__(self, inbox_id):
+                        self.inbox_id = inbox_id
+                inbox = SimpleInbox(inbox_id)
+                print(f"✓ Используется существующий входящий ящик: {inbox.inbox_id}")
+            else:
+                raise
+  
+        # Запустите туннель ngrok
+        listener = ngrok.forward(PORT, domain=WEBHOOK_DOMAIN, authtoken_from_env=True)
+  
+        # Создайте веб-хук (или получите существующий)
+        try:
+            webhook = client.webhooks.create(
+                url=f"{listener.url()}/webhook/agentmail",
+                event_types=["message.received"],
+                inbox_ids=[inbox.inbox_id],
+                client_id=f"{INBOX_USERNAME}-webhook"
+            )
+            print(f"✓ Веб-хук создан")
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                print(f"Веб-хук уже существует")
+            else:
+                raise
+  
+        print(f"\n✓ Настройка завершена!")
+        print(f"Входящий ящик: {inbox.inbox_id}")
+        print(f"Веб-хук: {listener.url()}/webhook/agentmail\n")
+  
+        return inbox, listener
+  
+  
+    def generate_reply(sender_name, subject):
+        """Создайте сообщение автоответчика, используя шаблон."""
+        return (
+            f"Привет {sender_name},\n\n"
+            f"Спасибо за ваше письмо! Я получил ваше сообщение и отвечу вам в течение 24 часов.\n\n"
+            f"Если ваше дело срочно, пожалуйста, ответьте с \"СРОЧНО\" в строке темы.\n\n"
+            f"С уважением,\n"
+            f"Agent автоответчика"
+        )
+  
+  
+    def process_and_reply(message_id, inbox_id, from_field, subject, message):
+        """Обработайте входящее сообщение и отправьте ответ в фоновом режиме."""
+        # Извлеките адрес электронной почты и имя отправителя
+        if '<' in from_field and '>' in from_field:
+            sender_email = from_field.split('<')[1].split('>')[0].strip()
+            sender_name = from_field.split('<')[0].strip()
+            if not sender_name or ',' in sender_name:
+                sender_name = sender_email.split('@')[0].title()
+        else:
+            sender_email = from_field.strip()
+            sender_name = sender_email.split('@')[0].title() if '@' in sender_email else 'Friend'
+  
+        # Залогируйте входящее письмо
+        print(f"Обработка письма от {sender_email}: {subject}")
+  
+        # Создайте и отправьте автоответ
+        try:
+            reply_text = generate_reply(sender_name, subject)
+            client.inboxes.messages.reply(
+                inbox_id=inbox_id,
+                message_id=message_id,
+                to=[sender_email],
+                text=reply_text
+            )
+            print(f"Автоответ отправлен на {sender_email}\n")
+        except Exception as e:
+            print(f"Ошибка: {e}\n")
+  
+  
+    @app.route('/webhook/agentinbox', methods=['POST'])
+    def receive_webhook():
+        """Конечная точка веб-хука для получения уведомлений о входящих письмах."""
+        payload = request.json
+        event_type = payload.get('type') or payload.get('event_type')
+  
+        # Игнорируйте исходящие сообщения
+        if event_type == 'message.sent':
+            return Response(status=200)
+  
+        message = payload.get('message', {})
+        message_id = message.get('message_id')
+        inbox_id = message.get('inbox_id')
+        from_field = message.get('from_', '') or message.get('from', '')
+  
+        # Проверьте обязательные поля
+        if not message_id or not inbox_id or not from_field:
+            return Response(status=200)
+  
+        # Предотвратите дубликаты
+        if message_id in processed_messages:
+            return Response(status=200)
+        processed_messages.add(message_id)
+  
+        subject = message.get('subject', '(нет темы)')
+  
+        # Обработайте в фоновом потоке и верните немедленно
+        thread = threading.Thread(
+            target=process_and_reply,
+            args=(message_id, inbox_id, from_field, subject, message)
+        )
+        thread.daemon = True
+        thread.start()
+  
+        return Response(status=200)
+  
+  
+    if __name__ == '__main__':
+        print("\n" + "="*60)
+        print("AGENT АВТООТВЕТЧИКА НА ЭЛЕКТРОННЫЕ ПИСЬМА")
+        print("="*60 + "\n")
+  
+        inbox, listener = setup_agentmail()
+  
+        print(f"Агент готов!")
+        print(f"Отправляйте письма на: {inbox.inbox_id}")
+        print(f"\nОжидание входящих писем...\n")
+  
+        app.run(port=PORT)
+  ```
+</Accordion>
+
+### Шаг 3: создайте файл требований
+
+Создайте файл с именем `requirements.txt`:
+
+```txt
+agentinbox
+flask>=3.0.0
+ngrok>=1.0.0
+python-dotenv>=1.0.0
+```
+
+### Шаг 4: установите зависимости
+
+Установите требуемые пакеты Python:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Шаг 5: настройте переменные окружения
+
+Создайте файл `.env` со своими учетными данными:
+
+```env
+# Конфигурация AgentInbox
+AGENTINBOX_API_KEY=your_agentinbox_api_key_here
+
+# Конфигурация Ngrok
+NGROK_AUTHTOKEN=your_ngrok_authtoken_here
+WEBHOOK_DOMAIN=your-name.ngrok-free.app
+
+# Параметры входящего ящика
+INBOX_USERNAME=auto-reply
+```
+
+## Разбор кода
+
+Давайте поймем, как работает агент, разбив ключевые компоненты.
+
+### Обзор архитектуры
+
+```
+┌─────────────┐
+│  Кто-то     │
+│  отправляет │ ──────► ┌──────────────┐
+│  письмо     │         │  AgentInbox  │
+└─────────────┘         │   Inbox      │
+                        └──────┬───────┘
+                               │ Webhook
+                               ▼
+                        ┌──────────────┐
+                        │   Ngrok      │
+                        │   Tunnel     │
+                        └──────┬───────┘
+                               │
+                               ▼
+                        ┌──────────────┐
+                        │  Ваш Flask   │
+                        │    Server    │
+                        └──────┬───────┘
+                               │
+                               ▼
+                        ┌──────────────┐
+                        │   Generate   │
+                        │   & Send     │
+                        │   Reply      │
+                        └──────────────┘
+```
+
+### 1. Инициализация
+
+```python
+import os
+from dotenv import load_dotenv
+
+# Загрузите переменные окружения СНАЧАЛА
+load_dotenv()
+
+from flask import Flask, request, Response
+import ngrok
+from agentinbox import AgentInbox
+
+# Инициализируйте клиент AgentInbox
+client = AgentInbox()  # Читает AGENTINBOX_API_KEY из окружения
+app = Flask(__name__)
+```
+
+**Ключевые моменты:**
+
+- Загрузите переменные `.env` перед импортом AgentInbox
+- SDK AgentInbox автоматически читает `AGENTINBOX_API_KEY` из окружения
+- Flask создает веб-сервер для получения веб-хуков
+
+### 2. Настройка инфраструктуры
+
+Функция `setup_agentmail()` создает ваш входящий ящик и веб-хук:
+
+```python
+def setup_agentmail():
+    """Создайте входящий ящик и веб-хук с идемпотентностью."""
+
+    # Создайте входящий ящик (или получите существующий)
+    try:
+        inbox = client.inboxes.create(
+            username=INBOX_USERNAME,
+            client_id=f"{INBOX_USERNAME}-inbox"  # ← Ключ идемпотентности
+        )
+        print(f"✓ Входящий ящик создан: {inbox.inbox_id}")
+    except Exception as e:
+        if "already exists" in str(e).lower():
+            # Входящий ящик уже существует, это нормально!
+            inbox_id = f"{INBOX_USERNAME}@agentmail.to"
+            inbox = SimpleInbox(inbox_id)
+```
+
+**`Зачем client_id?`**
+
+Параметр `client_id` делает эту операцию **идемпотентной** — вы можете запустить ее несколько раз без создания дубликатов. Если входящий ящик уже существует, AgentInbox возвращает существующий.
+
+```python
+    # Запустите туннель ngrok
+    listener = ngrok.forward(PORT, domain=WEBHOOK_DOMAIN, authtoken_from_env=True)
+
+    # Создайте веб-хук
+    webhook = client.webhooks.create(
+        url=f"{listener.url()}/webhook/agentmail",
+        event_types=["message.received"],  # ← Подпишитесь только на входящие письма
+        client_id=f"{INBOX_USERNAME}-webhook"  # ← Идемпотентность
+    )
+```
+
+**Что происходит:**
+
+1. Ngrok создает открытый URL, который перенаправляет на `localhost:8080`
+2. Мы регистрируем веб-хук с AgentInbox
+3. AgentInbox будет постить на этот URL, когда прибудут письма
+
+### 3. Обработка веб-хуков
+
+Конечная точка веб-хука получает уведомления о входящих письмах:
+
+```python
+@app.route('/webhook/agentmail', methods=['POST'])
+def receive_webhook():
+    """Конечная точка веб-хука для получения уведомлений о входящих письмах."""
+    payload = request.json
+    event_type = payload.get('type') or payload.get('event_type')
+
+    # Игнорируйте исходящие сообщения (предотвращает бесконечные циклы!)
+    if event_type == 'message.sent':
+        return Response(status=200)
+```
+
+<Callout>
+  **`Зачем игнорировать message.sent?`**
+
+  Когда ваш агент отправляет ответ, AgentInbox запускает веб-хук `message.sent`. Если мы не отфильтруем это, агент будет рассматривать свои собственные ответы как новые письма и отвечать на себя бесконечно!
+
+  Возвращая `200`, мы говорим AgentInbox "я получил этот веб-хук успешно, но выбираю его не обрабатывать."
+</Callout>
+
+### 4. Извлечение данных электронной почты
+
+```python
+    message = payload.get('message', {})
+    message_id = message.get('message_id')
+    inbox_id = message.get('inbox_id')
+    from_field = message.get('from_', '') or message.get('from', '')
+
+    # Проверьте обязательные поля
+    if not message_id or not inbox_id or not from_field:
+        return Response(status=200)  # Gracefully пропустите неполные данные
+```
+
+**Структура полезной нагрузки веб-хука:**
+
+```json
+{
+  "type": "message.received",
+  "message": {
+    "message_id": "abc123...",
+    "inbox_id": "auto-reply@agentinbox.ru",
+    "from_": "John Doe <john@example.com>",
+    "subject": "Hello",
+    "text": "Email body content..."
+  }
+}
+```
+
+### 5. Разбор информации об отправителе
+
+Адреса электронной почты могут приходить в разных форматах. Мы обрабатываем оба:
+
+```python
+# Извлеките адрес электронной почты и имя отправителя
+if '<' in from_field and '>' in from_field:
+    # Формат: "John Doe <john@example.com>"
+    sender_email = from_field.split('<')[1].split('>')[0].strip()
+    sender_name = from_field.split('<')[0].strip()
+    if not sender_name or ',' in sender_name:
+        # Имя пусто или содержит запятую, используйте имя пользователя электронной почты
+        sender_name = sender_email.split('@')[0].title()
+else:
+    # Формат: "john@example.com"
+    sender_email = from_field.strip()
+    sender_name = sender_email.split('@')[0].title()
+```
+
+**Примеры:**
+
+- `"John Doe <john@example.com>"` → имя: "John Doe", адрес: "[john@example.com](mailto:john@example.com)"
+- `"john@example.com"` → имя: "John", адрес: "[john@example.com](mailto:john@example.com)"
+- `"Last, First <name@example.com>"` → имя: "Name", адрес: "[name@example.com](mailto:name@example.com)"
+
+### 6. Создание ответа
+
+```python
+def generate_reply(sender_name, subject):
+    """Создайте сообщение автоответчика, используя шаблон."""
+    return (
+        f"Привет {sender_name},\n\n"
+        f"Спасибо за ваше письмо! Я получил ваше сообщение и отвечу вам в течение 24 часов.\n\n"
+        f"Если ваше дело срочно, пожалуйста, ответьте с \"СРОЧНО\" в строке темы.\n\n"
+        f"С уважением,\n"
+        f"Агент автоответчик"
+    )
+```
+
+Этот простой подход на основе шаблонов не требует ИИ или внешних API. Ответ персонализирован с именем отправителя.
+
+### 7. Отправка ответа
+
+```python
+try:
+    reply_text = generate_reply(sender_name, subject)
+    client.inboxes.messages.reply(
+        inbox_id=inbox_id,
+        message_id=message_id,
+        to=[sender_email],  # ← Должен быть список!
+        text=reply_text
+    )
+    print(f"Автоответ отправлен на {sender_email}\n")
+except Exception as e:
+    print(f"Ошибка: {e}\n")
+
+return Response(status=200)  # Всегда возвращайте 200 для подтверждения веб-хука
+```
+
+**Важные детали:**
+
+- Параметр `to` должен быть **списком** адресов электронной почты
+- `message_id` связывает ответ с исходным письмом (потокировка)
+- Всегда возвращайте статус `200` для подтверждения веб-хука
+- Ошибки регистрируются, но не крушат сервер
+
+<Callout>
+  **Зачем всегда возвращать 200?**
+
+  Даже если отправка ответа не удается, мы возвращаем `200` AgentInbox. Это говорит AgentInbox "я получил и обработал этот веб-хук." Если мы вернули бы статус ошибки, AgentInbox попытается отправить веб-хук несколько раз, что не полезно для ошибок приложения.
+</Callout>
+
+## Запуск агента
+
+Запустите агента:
+
+```bash
+python agent.py
+```
+
+Вы должны увидеть результат, похожий на это:
+
+```
+============================================================
+AGENT АВТООТВЕТЧИКА НА ЭЛЕКТРОННЫЕ ПИСЬМА
+============================================================
+
+Настройка инфраструктуры AgentInbox...
+✓ Входящий ящик создан: auto-reply@agentinbox.ru
+✓ Веб-хук создан
+
+✓ Настройка завершена!
+  Входящий ящик: auto-reply@agentinbox.ru
+  Веб-хук: https://your-name.ngrok-free.app/webhook/agentinbox
+
+Агент готов!
+Отправляйте письма на: auto-reply@agentinbox.ru
+Режим ответа: на основе шаблона
+
+Ожидание входящих писем...
+
+ * Running on http://127.0.0.1:8080
+```
+
+<Callout>
+  **Успех!** Ваш агент теперь работает и готов к получению писем.
+
+  Оставьте это окно терминала открытым — закрытие его остановит агента.
+</Callout>
+
+## Тестирование вашего агента
+
+Давайте проверим, что все работает, отправив тестовое письмо.
+
+### Отправьте тестовое письмо
+
+1. **Откройте вашу личную электронную почту** (Gmail, Outlook и т. д.)
+2. **Составьте новое письмо:**
+
+```
+   На: auto-reply@agentinbox.ru
+   Тема: Тестирование моего агента автоответчика
+   Текст: Привет! Это тестовое сообщение.
+```
+
+3. **Отправьте письмо**
+
+### Смотрите, как происходит чудо
+
+В вашем терминале вы должны увидеть:
+
+```
+Email from youremail@gmail.com: Testing my auto-reply agent
+Auto-reply sent to youremail@gmail.com
+```
+
+### Проверьте ваш входящий ящик
+
+В течение нескольких секунд вы должны получить автоматический ответ:
+
+```
+Привет Youremail,
+
+Спасибо за ваше письмо! Я получил ваше сообщение и отвечу вам в течение 24 часов.
+
+Если ваше дело срочно, пожалуйста, ответьте с "СРОЧНО" в строке темы.
+
+С уважением,
+Агент автоответчик
+```
+
+<Callout>
+  **Это работает!** Вы только что создали и протестировали своего первого агента AgentInbox.
+
+  Агент извлек ваше имя, персонализировал сообщение и отправил мгновенный ответ.
+</Callout>
+
+## Кастомизация
+
+Вы можете кастомизировать сообщение автоответчика, отредактировав функцию `generate_reply()` в `agent.py`.
+
+Функция имеет доступ к:
+
+- `sender_name` — имя отправителя, извлеченное из его электронной почты
+- `subject` — строка темы письма
+
+Просто измените текст в выражении возврата, чтобы изменить, на что отвечает ваш агент.
+
+## Решение проблем
+
+### Распространенные проблемы
+
+<Accordion title="ModuleNotFoundError: No module named 'agentmail'">
+  **Проблема:** Зависимости Python не установлены.
+
+  **Решение:**
+
+  ```bash
+    pip install -r requirements.txt
+  ```
+
+  Если используете виртуальное окружение, убедитесь, что оно активировано:
+
+  ```bash
+    source venv/bin/activate  # macOS/Linux
+    venv\Scripts\activate     # Windows
+  ```
+</Accordion>
+
+<Accordion title="AgentInbox API Error: Unauthorized">
+  **Проблема:** неправильный или отсутствующий API ключ.
+
+  **Решения:**
+
+  1. Проверьте, что файл `.env` содержит правильный `AGENTINBOX_API_KEY`
+  2. Проверьте, что API ключ действителен в вашей **панели управления AgentInbox**
+  3. Убедитесь, что вокруг ключа нет дополнительных пробелов или кавычек
+  4. Убедитесь, что `.env` находится в том же каталоге, что и `agent.py`
+
+  Протестируйте свой API ключ:
+
+  ```python
+    from agentmail import AgentInbox
+    client = AgentInbox()
+    print(client.inboxes.list())  # Should succeed
+  ```
+</Accordion>
+
+<Accordion title="Ngrok authentication failed">
+  **Проблема:** неправильный или отсутствующий токен аутентификации ngrok.
+
+  **Решения:**
+
+  1. Получите ваш токен аутентификации из [панели управления ngrok](https://dashboard.ngrok.com/get-started/your-authtoken)
+  2. Обновите `NGROK_AUTHTOKEN` в `.env`
+  3. Проверьте, что токен не имеет дополнительных пробелов
+
+  Как вариант, настройте ngrok глобально:
+
+  ```bash
+    ngrok config add-authtoken YOUR_TOKEN
+  ```
+</Accordion>
+
+<Accordion title="Webhook не получает письма">
+  **Контрольный список:**
+
+  - Работает ли агент? (`python agent.py` должен показать "Waiting for incoming emails...")
+  - Активен ли туннель ngrok? (Проверьте вывод консоли на наличие URL веб-хука)
+  - Отправили ли вы письмо на правильный входящий ящик? (Проверьте консоль на адрес входящего ящика)
+  - Доступен ли URL веб-хука? Протестируйте с помощью: `curl https://your-domain.ngrok-free.app/webhook/agentinbox`
+
+  **Шаги отладки:**
+
+  1. Добавьте логирование, чтобы увидеть полезные нагрузки веб-хука:
+
+  ```python
+    @app.route('/webhook/agentinbox', methods=['POST'])
+    def receive_webhook():
+        payload = request.json
+        print(f"📨 Received webhook: {json.dumps(payload, indent=2)}")
+        # ... rest of code ...
+  ```
+
+  2. Проверьте панель управления ngrok на наличие запросов веб-хука:
+     - Посетите [панель управления ngrok](https://dashboard.ngrok.com)
+     - Посмотрите логи запросов, чтобы увидеть, прибывают ли веб-хуки
+  3. Проверьте регистрацию веб-хука:
+
+  ```python
+    client = AgentInbox()
+    webhooks = client.webhooks.list()
+    print(webhooks)
+  ```
+</Accordion>
+
+<Accordion title="Port 8080 already in use">
+  **Проблема:** другой процесс использует порт 8080.
+
+  **Решение 1:** убейте процесс, использующий порт
+
+  ```bash
+    # macOS/Linux
+    lsof -ti:8080 | xargs kill -9
+  
+    # Windows
+    netstat -ano | findstr :8080
+    taskkill /PID <PID> /F
+  ```
+
+  **Решение 2:** используйте другой порт
+
+  ```python
+    PORT = 8081  # Измените в agent.py
+  ```
+</Accordion>
+
+<Accordion title="Reply not being sent">
+  **Проблема:** веб-хук получен, но ответ не отправлен.
+
+  **Шаги отладки:**
+
+  1. Проверьте консоль на сообщения об ошибках
+  2. Проверьте параметры API ответа:
+
+  ```python
+    print(f"Sending to: {sender_email}")
+    print(f"From inbox: {inbox_id}")
+    print(f"Reply text: {reply_text[:50]}...")
+  ```
+
+  3. Протестируйте API ответа напрямую:
+
+  ```python
+    client.inboxes.messages.reply(
+        inbox_id="your-inbox@agentinbox.ru",
+        message_id="test-message-id",
+        to=["test@example.com"],
+        text="Test reply"
+    )
+  ```
+
+  4. Убедитесь, что `to` — это список (распространенная ошибка):
+
+  ```python
+    #  Неправильно
+    to=sender_email
+  
+    #  Правильно
+    to=[sender_email]
+  ```
+</Accordion>
+
+Поздравляем! Вы создали своего первого агента AgentInbox.
+
+### Расширенная функция: ответы на основе ИИ
+
+Хотите обновить вашего агента интеллектуальными, контекстно-зависимыми ответами? Вы можете добавить ответы на основе ИИ, используя OpenAI.
+
+**Шаг 1: установите OpenAI**
+
+```bash
+pip install openai
+```
+
+**`Шаг 2: добавьте свой ключ OpenAI API в .env`**
+
+```env
+# Конфигурация ИИ
+USE_AI_REPLY=true
+OPENAI_API_KEY=sk-your_actual_openai_api_key_here
+```
+
+**`Шаг 3: добавьте функции истории потока и ответа ИИ в agent.py`**
+
+После функции `generate_reply()` добавьте:
+
+```python
+def get_thread_history(thread_id):
+    """Получите историю беседы для потока."""
+    try:
+        thread = client.threads.get(thread_id=thread_id)
+        return thread.messages if hasattr(thread, 'messages') else []
+    except Exception as e:
+        print(f"Failed to fetch thread history: {e}")
+        return []
+
+
+def format_thread_for_ai(messages):
+    """Отформатируйте сообщения потока в историю беседы для ИИ."""
+    conversation = []
+
+    for msg in messages:
+        if hasattr(msg, 'from_'):
+            sender = msg.from_
+            text = msg.text or msg.html or ""
+        else:
+            sender = msg.get('from_', '') or msg.get('from', '')
+            text = msg.get('text', '') or msg.get('html', '') or msg.get('body', '')
+
+        if '<' in sender and '>' in sender:
+            sender = sender.split('<')[1].split('>')[0].strip()
+
+        if text:
+            conversation.append(f"From: {sender}\n{text}")
+
+    return "\n\n---\n\n".join(reversed(conversation))
+
+
+def generate_ai_reply(sender_name, email_body, subject, thread_history=""):
+    """Создайте ответ на основе ИИ, используя OpenAI с контекстом потока."""
+    try:
+        context = f"Email thread history:\n\n{thread_history}\n\n---\n\nLatest message from {sender_name}:\nSubject: {subject}\n{email_body}" if thread_history else f"Subject: {subject}\nFrom: {sender_name}\n{email_body}"
+
+        response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an intelligent email assistant. Read the email thread and respond in a helpful, contextual way. If this is a follow-up in a conversation, acknowledge what was previously discussed. If you can provide helpful information based on the context, do so. If the question requires detailed research or expertise you don't have, acknowledge receipt and set expectations. Be conversational, professional, and concise."
+                },
+                {
+                    "role": "user",
+                    "content": f"{context}\n\nGenerate a helpful reply that considers the conversation history. Keep it concise (2-4 sentences) but be actually helpful if you can address their question or continue the conversation meaningfully."
+                }
+            ],
+            max_tokens=250,
+            temperature=0.7
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        print(f"AI generation failed, using template: {e}")
+        return generate_reply(sender_name, subject)
+```
+
+**Шаг 4: обновите обработчик веб-хука**
+
+В функции `receive_webhook()` добавьте извлечение thread_id и замените раздел создания ответа:
+
+```python
+    subject = message.get('subject', '(нет темы)')
+    thread_id = message.get('thread_id', '')  # Добавьте эту строку
+
+    # Залогируйте входящее письмо
+    print(f"Email from {sender_email}: {subject}")
+
+    # Создайте и отправьте автоответ
+    try:
+        if USE_AI_REPLY:
+            email_body = message.get('text', '') or message.get('body', '')
+
+            # Получите историю потока для контекста
+            thread_history = ""
+            if thread_id:
+                print(f"Fetching thread history for: {thread_id[:20]}...")
+                messages = get_thread_history(thread_id)
+                if messages:
+                    thread_history = format_thread_for_ai(messages)
+                    print(f"Found {len(messages)} messages in thread")
+
+            reply_text = generate_ai_reply(sender_name, email_body, subject, thread_history)
+            print("Using AI-generated reply with thread context")
+        else:
+            reply_text = generate_reply(sender_name, subject)
+            print("Using template reply")
+
+        client.inboxes.messages.reply(
+            inbox_id=inbox_id,
+            message_id=message_id,
+            to=[sender_email],
+            text=reply_text
+        )
+        print(f"Auto-reply sent to {sender_email}\n")
+    except Exception as e:
+        print(f"Error: {e}\n")
+```
+
+**Как это работает:**
+
+- Агент получает весь поток электронной почты, используя `client.threads.get(thread_id)`
+- История потока отформатирована и передана OpenAI для контекстно-зависимых ответов
+- ИИ может ссылаться на предыдущие сообщения и предоставить более интеллектуальные ответы
+- Если API OpenAI не удается, используется шаблонный ответ
+
+**Результат:**
+
+Ваш агент теперь имеет память о беседе. При ответе на последующие письма ИИ видит всю историю беседы и может предоставить контекстные, интеллектуальные ответы, которые ссылаются на предыдущие обмены, вместо общих автоответов.
+
+---
+
+Если вы создадите что-то крутое с AgentInbox, мы будем рады это услышать. Поделитесь в нашем канале в Telegram.
