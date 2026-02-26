@@ -1,0 +1,250 @@
+---
+title: "Руководство по настройке веб-хуков"
+---
+
+Полное руководство по настройке веб-хуков с ngrok и AgentInbox, включая создание учетной записи, настройку входящего ящика и примеры кода.
+
+Это руководство проведет вас через полный процесс настройки веб-хуков для получения уведомлений в реальном времени от AgentInbox. Вы узнаете, как создать учетную запись ngrok, настроить входящий ящик, настроить веб-хуки и написать простой приемник веб-хуков.
+
+## Предварительные требования
+
+Перед началом убедитесь, что у вас есть:
+
+- Python 3.8 или выше установлен
+- **API ключ AgentInbox**
+- Менеджер пакетов `pip`
+- Базовое знакомство с Python и командами терминала
+
+## Установка
+
+Сначала установите необходимые пакеты Python:
+
+```bash
+pip install agentinbox flask ngrok
+```
+
+## Шаг 1: настройка учетной записи на Ngrok
+
+Ngrok создает безопасный туннель от открытого URL на ваш локальный сервер разработки, позволяя AgentInbox отправлять веб-хуки на вашу машину во время разработки.
+
+### 1.1 Создайте учетную 
+
+<Frame>
+  ![Webhook Ngrok](/images/webhook-ngrok.webp)
+</Frame>
+
+### запись ngrok
+
+Посетите [ngrok.com](https://ngrok.com/) и нажмите "Sign up", чтобы создать бесплатную учетную запись.
+
+<Frame>
+  ![Image](/images/image.png)
+
+  ### 1.2 выберите вашу платформу и установите
+</Frame>
+
+После входа ngrok проведет вас через процесс настройки. Выберите вашу операционную систему и следуйте инструкциям по установке.
+
+Для macOS вы можете установить ngrok через Homebrew:
+
+```bash
+brew install ngrok
+```
+
+После установки аутентифицируйте ngrok с помощью вашего authtoken (находится в вашей панели управления ngrok):
+
+```bash
+ngrok config add-authtoken YOUR_AUTHTOKEN
+```
+
+## Шаг 2: создание входящего ящика на AgentInbox
+
+Прежде чем вы сможете получать веб-хуки, вам нужен входящий ящик для получения сообщений. Создайте один, используя API AgentInbox:
+
+```python
+from agentmail import AgentInbox
+
+client = AgentInbox()
+
+# Создайте входящий ящик для вашего агента веб-хука
+inbox = client.inboxes.create(
+    username="webhook-demo",
+    client_id="webhook-demo-inbox"  # Обеспечивает идемпотентность
+)
+
+print(f"Inbox created: {inbox.inbox_id}")
+```
+
+Параметр `client_id` обеспечивает, что многократное запуск этого кода не создаст дублирующиеся входящие ящики. Если входящий ящик уже существует, он вернет существующий.
+
+## Шаг 3: настройка веб-хука на AgentInbox
+
+### 3.1 запустите туннель ngrok
+
+В терминале запустите туннель ngrok, чтобы открыть ваш локальный сервер (мы будем использовать порт 3000):
+
+```bash
+ngrok http 3000
+```
+
+Вы должны увидеть результат, похожий на это:
+
+<Frame>
+  ![Image](/images/image-1.png)
+</Frame>
+
+Скопируйте **URL переадресации** (например, `https://your-subdomain.ngrok-free.app`). Это открытый URL, который AgentInbox будет использовать для отправки веб-хуков.
+
+<Callout>
+  При просмотре приемника веб-хука в браузере используйте URL `http://127.0.0.1:3000`, показанный в строке "Web Interface", а не URL ngrok. URL ngrok предназначен только для внешних сервисов, таких как AgentInbox.
+
+  **Почему localhost?** Safari более строг, чем Chrome/Firefox, при просмотре серверов разработки через HTTPS туннели ngrok. Safari блокирует локальные WebSockets и некоторые скрипты, специфичные для разработки, что вызывает бесконечное отображение спиннера загрузки на странице из-за Hot Module Replacement (HMR). Это ожидаемое поведение разработки, а не проблема документации. Использование localhost или статических сборок избегает этой проблемы.
+</Callout>
+
+### 3.2 зарегистрируйте веб-хук с помощью AgentInbox
+
+Теперь зарегистрируйте конечную точку веб-хука с помощью AgentInbox:
+
+```python
+# Используя URL ngrok, который вы скопировали
+webhook_url = "https://your-subdomain.ngrok-free.app/webhooks"
+
+webhook = client.webhooks.create(
+    url=webhook_url,
+    client_id="webhook-demo-webhook"  # Обеспечивает идемпотентность
+)
+
+print(f"Webhook created: {webhook.webhook_id}")
+```
+
+## Шаг 4: пример кода для получения веб-хуков
+
+Создайте файл с именем `webhook_receiver.py` со следующим кодом:
+
+```python
+from flask import Flask, request, Response
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    """Страница статуса для проверки работы сервера"""
+    return """
+    <html>
+    <body style="font-family: sans-serif; max-width: 800px; margin: 50px auto; padding: 20px;">
+        <h1>AgentInbox Webhook Receiver</h1>
+        <div style="background: #4CAF50; color: white; padding: 10px 20px;
+                    border-radius: 4px; display: inline-block; margin: 20px 0;">
+            Server is running
+        </div>
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;
+                    border-left: 4px solid #2196F3;">
+            <h3>Webhook Endpoint Ready</h3>
+            <p>Your webhook endpoint is listening at: <code>POST /webhooks</code></p>
+        </div>
+        <h3>How to use:</h3>
+        <ul>
+            <li>Start ngrok: <code>ngrok http 3000</code></li>
+            <li>Register your webhook with AgentInbox using the ngrok URL</li>
+            <li>Send a test email to your AgentInbox inbox</li>
+            <li>Watch the console for incoming webhook events</li>
+        </ul>
+    </body>
+    </html>
+    """
+
+@app.route('/webhooks', methods=['POST'])
+def receive_webhook():
+    """Получает события веб-хуков от AgentInbox"""
+    payload = request.json
+
+    event_type = payload.get('event_type')
+    message = payload.get('message', {})
+
+    print(f"\nWebhook received: {event_type}")
+    print(f"From: {message.get('from_')}")
+    print(f"Subject: {message.get('subject')}\n")
+
+    return Response(status=200)
+
+if __name__ == '__main__':
+    print("Starting webhook receiver on http://127.0.0.1:3000")
+    app.run(port=3000)
+```
+
+### Запуск приемника веб-хука
+
+1. Убедитесь, что ngrok работает в одном окне терминала
+2. В другом терминале запустите приемник веб-хука:
+
+```bash
+python webhook_receiver.py
+```
+
+3. Отправьте тестовое письмо на ваш входящий ящик AgentInbox
+4. Смотрите на выходе консоли события входящих веб-хуков
+
+### Просмотр результата
+
+Откройте браузер и посетите `http://127.0.0.1:3000`, чтобы увидеть страницу статуса, подтверждающую, что ваш приемник веб-хука работает:
+
+## Тестирование вашей настройки
+
+Чтобы протестировать вашу настройку веб-хука:
+
+1. Отправьте письмо на адрес вашего входящего ящика (например, `webhook-demo@agentinbox.to`)
+2. Проверьте выход консоли приемника веб-хука
+3. Вы должны увидеть подробности события веб-хука, напечатанные немедленно
+
+<Callout>
+  Теперь, когда ваш веб-хук работает, вы можете расширить функцию `receive_webhook()` для:
+
+  - Автоматического ответа на сообщения
+  - Обработки вложений
+  - Маршрутизации писем на различные обработчики на основе содержимого
+  - Интеграции с вашими рабочими процессами ИИ-агентов
+
+  Посмотрите [пример управляемого событиями агента](/webhook-agent) для более продвинутой реализации.
+</Callout>
+
+## Решение проблем
+
+<AccordionGroup>
+  <Accordion title="Веб-хук не получает события">
+    - Убедитесь, что ngrok работает и URL переадресации соответствует вашей регистрации веб-хука
+    - Проверьте, что ваше приложение Flask работает на правильном порту (3000)
+    - Убедитесь, что URL вашего веб-хука заканчивается на `/webhooks`
+    - Проверьте ошибки как в консоли Flask, так и в веб-интерфейсе ngrok
+  </Accordion>
+  <Accordion title="Туннель Ngrok отключается">
+    Бесплатные учетные записи ngrok имеют ограничение сеанса в 2 часа. Туннель отключится, и вам потребуется перезапустить ngrok и обновить URL вашего веб-хука с AgentInbox.
+  </Accordion>
+  <Accordion title="Порт уже используется">
+    Если порт 3000 уже используется, выберите другой порт:
+
+    - Измените порт в `app.run(port=XXXX)`
+    - Обновите команду ngrok: `ngrok http XXXX`
+  </Accordion>
+</AccordionGroup>
+
+## Рассмотрение производства
+
+Для производственных развертываний:
+
+- **Используйте выделенный сервер**: разверните приемник веб-хука на облачный сервис (AWS, GCP, Heroku и т. д.) вместо использования ngrok
+- **Реализуйте проверку веб-хука**: [проверяйте входящие запросы](/webhook-verification) аутентичны ли они от AgentInbox
+- **Добавьте обработку ошибок**: реализуйте логику повторных попыток и отчетность об ошибках
+- **Используйте асинхронную обработку**: верните 200 немедленно и обрабатывайте веб-хуки в фоновых задачах
+- **Мониторьте здоровье веб-хука**: установите логирование и оповещения для неудачных доставок веб-хуков
+
+<CardGroup>
+  <Card href="/webhook-verification" title="Проверка веб-хуков">
+    Узнайте, как проверить подписи веб-хуков для защиты конечных точек.
+  </Card>
+  <Card href="/overview" title="Обзор веб-хуков">
+    Узнайте больше о том, как работают веб-хуки и структуре их полезной нагрузки.
+  </Card>
+  <Card href="/events" title="События веб-хуков">
+    Изучите полный список типов событий веб-хуков.
+  </Card>
+</CardGroup>
