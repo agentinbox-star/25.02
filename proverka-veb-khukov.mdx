@@ -1,0 +1,357 @@
+---
+title: "Проверка веб-хуков"
+---
+
+Узнайте, как проверить подписи веб-хуков для защиты конечных точек веб-хуков и предотвращения поддельных запросов.
+
+При создании приемников веб-хуков критически важно проверить, что входящие запросы действительно поступают от AgentInbox и не были подделаны. AgentInbox использует [Svix](https://www.svix.com/) для доставки веб-хуков, который обеспечивает криптографическую проверку подписей.
+
+## Зачем проверять веб-хуки?
+
+Без проверки любой, кто обнаружит URL вашего веб-хука, может отправить поддельные запросы на вашу конечную точку, потенциально вызвав:
+
+- **Манипуляцию данными:** вредоносные акторы могли бы запустить действия на основе поддельных событий
+- **Нарушения безопасности:** поддельные сообщения могли бы внедрить вредоносные данные в ваши системы
+- **Истощение ресурсов:** злоумышленники могли бы наводнить вашу конечную точку поддельными запросами
+
+Всегда проверяйте подписи веб-хуков в производственных средах.
+
+## Получение вашего секрета подписания
+
+Каждая конечная точка веб-хука имеет уникальный секрет подписания, который вы будете использовать для проверки запросов. Вы можете найти этот секрет в консоли AgentInbox при создании вашего веб-хука или путем получения деталей вашего веб-хука:
+
+<CodeBlocks>
+  ```python
+    from agentmail import AgentMail
+
+    client = AgentMail()
+
+    # Получите детали веб-хука, включая секрет подписания
+    webhook = client.webhooks.get(webhook_id="ep_xxx")
+
+    # Секрет начинается с "whsec_"
+    signing_secret = webhook.secret
+    print(f"Signing secret: {signing_secret}")
+  ```
+
+  ```typescript
+    import AgentMail from "agentmail";
+
+    const client = new AgentMail();
+
+    // Получите детали веб-хука, включая секрет подписания
+    const webhook = await client.webhooks.get("ep_xxx");
+
+    // Секрет начинается с "whsec_"
+    const signingSecret = webhook.secret;
+    console.log(`Signing secret: ${signingSecret}`);
+  ```
+</CodeBlocks>
+
+<Callout>
+  Сохраняйте свой секрет подписания безопасно в переменных окружения. Никогда не фиксируйте его в управление версиями и не раскрывайте в коде на стороне клиента.
+</Callout>
+
+## Заголовки проверки
+
+Каждый запрос веб-хука от AgentInbox включает три заголовка, используемые для проверки:
+
+| Заголовок        | Описание                                                                                                     |
+| ---------------- | ------------------------------------------------------------------------------------------------------------ |
+| `svix-id`        | Уникальный идентификатор сообщения. Тот же ID используется для повторных попыток одного и того же сообщения. |
+| `svix-timestamp` | Unix отметка времени (секунды) отправки сообщения.                                                           |
+| `svix-signature` | Разделенный пробелом список подписей в формате `v1,<base64>` (например, `v1,abc123 v1,def456`).              |
+
+## Проверка с помощью библиотеки Svix (рекомендуется)
+
+Самый простой способ проверить веб-хуки — использовать официальную библиотеку Svix, которая обрабатывает все криптографические детали для вас.
+
+<CodeBlocks>
+  ```python
+    import os
+    from dotenv import load_dotenv
+    from flask import Flask, request
+
+    from svix.webhooks import Webhook, WebhookVerificationError
+
+    load_dotenv()
+
+    app = Flask(__name__)
+
+    secret = os.environ["AGENTMAIL_WEBHOOK_SECRET"]
+
+    @app.route('/webhooks', methods=['POST'])
+    def webhook_handler():
+        headers = request.headers
+        payload = request.get_data()
+
+        try:
+            wh = Webhook(secret)
+            msg = wh.verify(payload, headers)
+        except WebhookVerificationError as e:
+            return ('', 400)
+
+        # Сделайте что-нибудь с сообщением...
+
+        return ('', 204)
+
+    if __name__ == '__main__':
+        app.run(port=3000)
+  ```
+
+  ```typescript
+    import "dotenv/config";
+    import express, { Request, Response } from "express";
+    import { Webhook } from "svix";
+
+    const app = express();
+    const port = 3000;
+
+    const secret = process.env.AGENTMAIL_WEBHOOK_SECRET;
+
+    if (!secret) {
+      throw new Error("AGENTMAIL_WEBHOOK_SECRET environment variable is required");
+    }
+
+    app.post(
+      "/webhooks",
+      express.raw({ type: "application/json" }),
+      (req: Request, res: Response) => {
+        const payload = req.body;
+        const headers = req.headers as Record<string, string>;
+
+        try {
+          const wh = new Webhook(secret);
+          const msg = wh.verify(payload, headers);
+
+          // Сделайте что-нибудь с сообщением...
+          console.log("Webhook verified:", msg);
+
+          res.status(204).send();
+        } catch (err) {
+          console.error("Webhook verification failed:", err);
+          res.status(400).send();
+        }
+      }
+    );
+
+    app.listen(port, () => {
+      console.log(`Webhook server listening on port ${port}`);
+    });
+  ```
+</CodeBlocks>
+
+<Callout>
+  Проверка подписи требует точного тела запроса. Если вы используете middleware для разбора тела (как `express.json()`), убедитесь, что вы захватили сырое тело перед разбором, или используйте `express.raw()` для вашей конечной точки веб-хука.
+</Callout>
+
+## Тестирование локально с ngrok
+
+Во время разработки вам потребуется способ для AgentInbox достичь вашего локального сервера. [ngrok](https://ngrok.com/) создает открытый URL, который туннелирует на вашу локальную машину.
+
+### Шаг 1: сохраните сервер веб-хука
+
+Создайте файл сервера веб-хука:
+
+<CodeBlocks>
+  ```python title="webhook_server.py"
+    import os
+    from dotenv import load_dotenv
+    from flask import Flask, request
+
+    from svix.webhooks import Webhook, WebhookVerificationError
+
+    load_dotenv()
+
+    app = Flask(__name__)
+
+    secret = os.environ.get("AGENTMAIL_WEBHOOK_SECRET")
+
+    @app.route('/webhooks', methods=['POST'])
+    def webhook_handler():
+        headers = request.headers
+        payload = request.get_data()
+
+        try:
+            wh = Webhook(secret)
+            msg = wh.verify(payload, headers)
+            print(f"Received event: {msg}")
+        except WebhookVerificationError as e:
+            print(f"Verification failed: {e}")
+            return ('', 400)
+
+        # Сделайте что-нибудь с сообщением...
+
+        return ('', 204)
+
+    if __name__ == '__main__':
+        app.run(port=3000)
+  ```
+
+  ```typescript title="webhook_server.ts"
+    import "dotenv/config";
+    import express, { Request, Response } from "express";
+    import { Webhook } from "svix";
+
+    const app = express();
+    const port = 3000;
+
+    const secret = process.env.AGENTMAIL_WEBHOOK_SECRET;
+
+    if (!secret) {
+      throw new Error("AGENTMAIL_WEBHOOK_SECRET environment variable is required");
+    }
+
+    app.post(
+      "/webhooks",
+      express.raw({ type: "application/json" }),
+      (req: Request, res: Response) => {
+        const payload = req.body;
+        const headers = req.headers as Record<string, string>;
+
+        try {
+          const wh = new Webhook(secret);
+          const msg = wh.verify(payload, headers);
+
+          // Сделайте что-нибудь с сообщением...
+          console.log("Webhook verified:", msg);
+
+          res.status(204).send();
+        } catch (err) {
+          console.error("Webhook verification failed:", err);
+          res.status(400).send();
+        }
+      }
+    );
+
+    app.listen(port, () => {
+      console.log(`Webhook server listening on port ${port}`);
+    });
+  ```
+</CodeBlocks>
+
+### Шаг 2: установите зависимости и запустите сервер
+
+<CodeBlocks>
+  ```bash title="Python"
+    pip install flask python-dotenv svix
+    python webhook_server.py
+  ```
+
+  ```bash title="TypeScript"
+    npm install express svix dotenv
+    npx ts-node webhook_server.ts
+  ```
+</CodeBlocks>
+
+Вы должны увидеть результат похожий на:
+
+<CodeBlocks>
+  ```bash title="Python"
+     * Serving Flask app 'webhook_server'
+     * Debug mode: off
+     * Running on http://127.0.0.1:3000
+    Press CTRL+C to quit
+  ```
+
+  ```bash title="TypeScript"
+    Webhook server listening on port 3000
+  ```
+</CodeBlocks>
+
+### Шаг 3: запустите ngrok
+
+В новом окне терминала запустите ngrok, чтобы создать открытый туннель на ваш локальный сервер:
+
+```bash
+ngrok http 3000
+```
+
+ngrok отобразит URL переадресации:
+
+```
+Session Status                online
+Account                       your-email@example.com (Plan: Free)
+Version                       3.22.1
+Region                        United States (California) (us-cal-1)
+Forwarding                    https://da550b82a183.ngrok.app -> http://localhost:3000
+```
+
+Скопируйте URL переадресации `https://` (например, `https://da550b82a183.ngrok.app`).
+
+### Шаг 4: добавьте URL в консоль AgentInbox
+
+1. Перейдите на **консоль AgentInbox**
+2. Перейдите на **Webhooks** на боковой панели
+3. Нажмите **Create Webhook** (или отредактируйте существующий)
+4. Вставьте URL ngrok с путем `/webhooks`: `https://da550b82a183.ngrok.app/webhooks`
+5. Выберите события, которые вы хотите получать
+6. Сохраните веб-хук
+7. Скопируйте секрет подписания и добавьте его в файл `.env`:
+
+```bash
+AGENTINBOX_WEBHOOK_SECRET=whsec_your_secret_here
+```
+
+### Шаг 5: запустите тестовое событие
+
+Отправьте письмо на один из входящих ящиков AgentInbox или используйте консоль для отправки тестового события. Вы должны увидеть веб-хук, полученный в терминале:
+
+```
+127.0.0.1 - - [19/Jan/2026 16:57:20] "POST /webhooks HTTP/1.1" 204 -
+Received event: {'event_type': 'message.received', ...}
+```
+
+<Callout>
+  ngrok отлично подходит для локальной разработки, но для производства вам потребуется развернуть сервер веб-хука на хостинг-провайдер. Смотрите следующий раздел для вариантов развертывания.
+</Callout>
+
+## Развертывание в производстве
+
+Для производства вам потребуется развернуть сервер веб-хука на хостинг-провайдер, который дает вам стабильный открытый HTTPS URL. Мы рекомендуем [Render](https://render.com/) за его простоту и щедрый бесплатный уровень.
+
+<Callout>
+  Вы также можете развернуть на другие платформы, такие как [Railway](https://railway.app/), [Fly.io](https://fly.io/), [Heroku](https://heroku.com/), или любого облачного провайдера, поддерживающего Python веб-приложения. Ключевые требования — стабильный открытый HTTPS URL и возможность установки переменных окружения.
+</Callout>
+
+## Лучшие практики
+
+<AccordionGroup>
+  <Accordion title="Всегда проверяйте в производстве">
+    Хотя вы можете пропустить проверку при локальной разработке, всегда включайте ее в производственных средах. Скомпрометированная конечная точка веб-хука может быть серьезной уязвимостью безопасности.
+  </Accordion>
+  <Accordion title="Используйте переменные окружения">
+    Никогда не кодируйте вашу секретную подпись жестко. Используйте переменные окружения или менеджер секретов:
+
+    ```python
+        import os
+        WEBHOOK_SECRET = os.environ["AGENTINBOX_WEBHOOK_SECRET"]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Решение проблем
+
+<AccordionGroup>
+  <Accordion title="Проверка подписи не удалась">
+    - Убедитесь, что вы используете сырое тело запроса, а не разобранную/измененную версию
+    - Проверьте, что ваш секрет подписания правильный и соответствует конечной точке веб-хука
+    - Убедитесь, что вы правильно извлекаете заголовки (они чувствительны к регистру?)
+    - Убедитесь, что отметка времени не истекла (допуск по умолчанию составляет 5 минут)
+  </Accordion>
+  <Accordion title="Отсутствующие заголовки">
+    Если заголовки отсутствуют, убедитесь, что ваш сервер/фреймворк их не удаляет. Некоторые обратные прокси могут потребовать конфигурации для передачи пользовательских заголовков.
+  </Accordion>
+  <Accordion title="Проблемы разбора тела">
+    Если вы используете middleware для разбора тела, убедитесь, что вы обращаетесь к сырому телу для проверки. В Express используйте `express.raw()` для вашего маршрута веб-хука.
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup>
+  <Card href="/webhook-setup" title="Настройка веб-хука">
+    Полное руководство по настройке веб-хуков с ngrok.
+  </Card>
+  <Card href="/events" title="События веб-хуков">
+    Изучите все доступные типы событий веб-хуков.
+  </Card>
+</CardGroup>
