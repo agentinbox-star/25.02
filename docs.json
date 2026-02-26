@@ -83,7 +83,8 @@
           {
             "group": "Вебсокеты (WebSockets)",
             "pages": [
-              "web-sockets"
+              "web-sockets",
+              "web-sockets-bystriy-start"
             ]
           },
           {

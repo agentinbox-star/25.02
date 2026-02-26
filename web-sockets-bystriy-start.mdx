@@ -1,0 +1,41 @@
+---
+title: "WebSockets Быстрый старт"
+---
+
+Начните работу с потоковой передачей событий электронной почты в реальном времени
+
+```typescript TypeScript
+import { AgentInboxClient } from "agentinbox";
+const client = new AgentInboxClient();
+async function main() {
+  const socket = await client.websockets.connect({
+    apiKey: process.env.AGENTINBOX_API_KEY,
+  });
+  socket.on("message", async (event) => {
+    if (event.type === "subscribed") {
+      console.log("Подписано на", event.inboxIds);
+    } else if (event.eventType === "message.received") {
+      console.log(`Получено сообщение от: ${event.message.from}`);
+    }
+  });
+  await socket.waitForOpen();
+  socket.sendSubscribe({
+    type: "subscribe",
+    inboxIds: ["my-agent@agentinbox.ru"],
+  });
+}
+main();
+```
+
+```python Python
+from agentinbox import AgentInbox, MessageReceivedEvent, Subscribe, Subscribed
+client = AgentInbox()
+with client.websockets.connect() as socket:
+    socket.send_subscribe(Subscribe(inbox_ids=["my-agent@agentinbox.ru"]))
+    for event in socket:
+        if isinstance(event, Subscribed):
+            print(f"Подписано на {event.inbox_ids}")
+        elif isinstance(event, MessageReceivedEvent):
+            msg = event.message
+            print(f"Получено сообщение от: {msg.from_}")
+```
