@@ -20,33 +20,19 @@ title: "Проверка веб-хуков"
 
 Каждая конечная точка веб-хука имеет уникальный секрет подписания, который вы будете использовать для проверки запросов. Вы можете найти этот секрет в консоли AgentInbox при создании вашего веб-хука или путем получения деталей вашего веб-хука:
 
-<CodeBlocks>
-  ```python
-    from agentmail import AgentMail
+`from agentinbox import AgentInbox`
 
-    client = AgentMail()
+`client = AgentInbox()`
 
-    # Получите детали веб-хука, включая секрет подписания
-    webhook = client.webhooks.get(webhook_id="ep_xxx")
+`# Get webhook details including the signing secret`
 
-    # Секрет начинается с "whsec_"
-    signing_secret = webhook.secret
-    print(f"Signing secret: {signing_secret}")
-  ```
+`webhook = client.webhooks.get(webhook_id="ep_xxx")`
 
-  ```typescript
-    import AgentMail from "agentmail";
+`# The secret starts with "whsec_"`
 
-    const client = new AgentMail();
+`signing_secret = webhook.secret`
 
-    // Получите детали веб-хука, включая секрет подписания
-    const webhook = await client.webhooks.get("ep_xxx");
-
-    // Секрет начинается с "whsec_"
-    const signingSecret = webhook.secret;
-    console.log(`Signing secret: ${signingSecret}`);
-  ```
-</CodeBlocks>
+`print(f"Signing secret: {signing_secret}")`
 
 <Callout>
   Сохраняйте свой секрет подписания безопасно в переменных окружения. Никогда не фиксируйте его в управление версиями и не раскрывайте в коде на стороне клиента.
@@ -66,80 +52,45 @@ title: "Проверка веб-хуков"
 
 Самый простой способ проверить веб-хуки — использовать официальную библиотеку Svix, которая обрабатывает все криптографические детали для вас.
 
-<CodeBlocks>
-  ```python
-    import os
-    from dotenv import load_dotenv
-    from flask import Flask, request
+`import os`
 
-    from svix.webhooks import Webhook, WebhookVerificationError
+`from dotenv import load_dotenv`
 
-    load_dotenv()
+`from flask import Flask, request`
 
-    app = Flask(__name__)
+`from svix.webhooks import Webhook, WebhookVerificationError`
 
-    secret = os.environ["AGENTMAIL_WEBHOOK_SECRET"]
+`load_dotenv()`
 
-    @app.route('/webhooks', methods=['POST'])
-    def webhook_handler():
-        headers = request.headers
-        payload = request.get_data()
+`app = Flask(__name__)`
 
-        try:
-            wh = Webhook(secret)
-            msg = wh.verify(payload, headers)
-        except WebhookVerificationError as e:
-            return ('', 400)
+`secret = os.environ["AGENTINBOX_WEBHOOK_SECRET"]`
 
-        # Сделайте что-нибудь с сообщением...
+`@app.route('/webhooks', methods=['POST'])`
 
-        return ('', 204)
+`def webhook_handler():`
 
-    if __name__ == '__main__':
-        app.run(port=3000)
-  ```
+`    headers = request.headers`
 
-  ```typescript
-    import "dotenv/config";
-    import express, { Request, Response } from "express";
-    import { Webhook } from "svix";
+`    payload = request.get_data()`
 
-    const app = express();
-    const port = 3000;
+`    try:`
 
-    const secret = process.env.AGENTMAIL_WEBHOOK_SECRET;
+`        wh = Webhook(secret)`
 
-    if (!secret) {
-      throw new Error("AGENTMAIL_WEBHOOK_SECRET environment variable is required");
-    }
+`        msg = wh.verify(payload, headers)`
 
-    app.post(
-      "/webhooks",
-      express.raw({ type: "application/json" }),
-      (req: Request, res: Response) => {
-        const payload = req.body;
-        const headers = req.headers as Record<string, string>;
+`    except WebhookVerificationError as e:`
 
-        try {
-          const wh = new Webhook(secret);
-          const msg = wh.verify(payload, headers);
+`        return ('', 400)`
 
-          // Сделайте что-нибудь с сообщением...
-          console.log("Webhook verified:", msg);
+`    # Do something with the message...`
 
-          res.status(204).send();
-        } catch (err) {
-          console.error("Webhook verification failed:", err);
-          res.status(400).send();
-        }
-      }
-    );
+`    return ('', 204)`
 
-    app.listen(port, () => {
-      console.log(`Webhook server listening on port ${port}`);
-    });
-  ```
-</CodeBlocks>
+`if name == '__main__':`
+
+`    app.run(port=3000)`
 
 <Callout>
   Проверка подписи требует точного тела запроса. Если вы используете middleware для разбора тела (как `express.json()`), убедитесь, что вы захватили сырое тело перед разбором, или используйте `express.raw()` для вашей конечной точки веб-хука.
@@ -153,111 +104,65 @@ title: "Проверка веб-хуков"
 
 Создайте файл сервера веб-хука:
 
-<CodeBlocks>
-  ```python title="webhook_server.py"
-    import os
-    from dotenv import load_dotenv
-    from flask import Flask, request
+`import os`
 
-    from svix.webhooks import Webhook, WebhookVerificationError
+`from dotenv import load_dotenv`
 
-    load_dotenv()
+`from flask import Flask, request`
 
-    app = Flask(__name__)
+`from svix.webhooks import Webhook, WebhookVerificationError`
 
-    secret = os.environ.get("AGENTMAIL_WEBHOOK_SECRET")
+`load_dotenv()`
 
-    @app.route('/webhooks', methods=['POST'])
-    def webhook_handler():
-        headers = request.headers
-        payload = request.get_data()
+`app = Flask(__name__)`
 
-        try:
-            wh = Webhook(secret)
-            msg = wh.verify(payload, headers)
-            print(f"Received event: {msg}")
-        except WebhookVerificationError as e:
-            print(f"Verification failed: {e}")
-            return ('', 400)
+`secret = os.environ.get("AGENTINBOX_WEBHOOK_SECRET")`
 
-        # Сделайте что-нибудь с сообщением...
+`@app.route('/webhooks', methods=['POST'])`
 
-        return ('', 204)
+`def webhook_handler():`
 
-    if __name__ == '__main__':
-        app.run(port=3000)
-  ```
+`    headers = request.headers`
 
-  ```typescript title="webhook_server.ts"
-    import "dotenv/config";
-    import express, { Request, Response } from "express";
-    import { Webhook } from "svix";
+`    payload = request.get_data()`
 
-    const app = express();
-    const port = 3000;
+`    try:`
 
-    const secret = process.env.AGENTMAIL_WEBHOOK_SECRET;
+`        wh = Webhook(secret)`
 
-    if (!secret) {
-      throw new Error("AGENTMAIL_WEBHOOK_SECRET environment variable is required");
-    }
+`        msg = wh.verify(payload, headers)`
 
-    app.post(
-      "/webhooks",
-      express.raw({ type: "application/json" }),
-      (req: Request, res: Response) => {
-        const payload = req.body;
-        const headers = req.headers as Record<string, string>;
+`        print(f"Received event: {msg}")`
 
-        try {
-          const wh = new Webhook(secret);
-          const msg = wh.verify(payload, headers);
+`    except WebhookVerificationError as e:`
 
-          // Сделайте что-нибудь с сообщением...
-          console.log("Webhook verified:", msg);
+`        print(f"Verification failed: {e}")`
 
-          res.status(204).send();
-        } catch (err) {
-          console.error("Webhook verification failed:", err);
-          res.status(400).send();
-        }
-      }
-    );
+`        return ('', 400)`
 
-    app.listen(port, () => {
-      console.log(`Webhook server listening on port ${port}`);
-    });
-  ```
-</CodeBlocks>
+`    # Do something with the message...`
+
+`    return ('', 204)`
+
+`if name == '__main__':`
+
+`    app.run(port=3000)`
 
 ### Шаг 2: установите зависимости и запустите сервер
 
-<CodeBlocks>
-  ```bash title="Python"
-    pip install flask python-dotenv svix
-    python webhook_server.py
-  ```
+`pip install flask python-dotenv svix`
 
-  ```bash title="TypeScript"
-    npm install express svix dotenv
-    npx ts-node webhook_server.ts
-  ```
-</CodeBlocks>
+`python webhook_server.py`
 
 Вы должны увидеть результат похожий на:
 
-<CodeBlocks>
-  ```bash title="Python"
-     * Serving Flask app 'webhook_server'
-     * Debug mode: off
-     * Running on http://127.0.0.1:3000
-    Press CTRL+C to quit
-  ```
+ `* Serving Flask app 'webhook_server'`
 
-  ```bash title="TypeScript"
-    Webhook server listening on port 3000
-  ```
-</CodeBlocks>
+` * Debug mode: off`
+
+` * Running on http://127.0.0.1:3000`
+
+`Press CTRL+C to quit`
 
 ### Шаг 3: запустите ngrok
 
