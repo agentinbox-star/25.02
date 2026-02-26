@@ -95,7 +95,9 @@
           },
           {
             "group": "Примеры",
-            "pages": []
+            "pages": [
+              "upravlyaemiy-sobytiyami-agent"
+            ]
           },
           {
             "group": "Ресурсы",
