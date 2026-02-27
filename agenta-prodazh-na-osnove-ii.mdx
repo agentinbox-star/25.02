@@ -91,14 +91,14 @@ cd sales-agent-websocket
     import os
     import re
     from dotenv import load_dotenv
-    from agentmail import AsyncAgentMail, Subscribe, Subscribed, MessageReceivedEvent
+    from agentinbox import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
     from openai import AsyncOpenAI
   
     # Загрузите переменные окружения
     load_dotenv()
   
     # Инициализируйте клиентов
-    agentmail = AsyncAgentMail(api_key=os.getenv("AGENTMAIL_API_KEY"))
+    agentinbox = AsyncAgentInbox(api_key=os.getenv("AGENTINBOX_API_KEY"))
     openai = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
   
     # Простая история беседы (thread_id -> сообщения)
@@ -151,7 +151,7 @@ cd sales-agent-websocket
     async def send_email(inbox_id, to_email, subject, body):
         """Отправьте новое письмо"""
         try:
-            await agentmail.inboxes.messages.send(
+            await agentinbox.inboxes.messages.send(
                 inbox_id=inbox_id,
                 to=[to_email],
                 subject=subject,
@@ -165,7 +165,7 @@ cd sales-agent-websocket
     async def reply_to_email(inbox_id, message_id, to_email, body):
         """Ответьте на письмо"""
         try:
-            await agentmail.inboxes.messages.reply(
+            await agentinbox.inboxes.messages.reply(
                 inbox_id=inbox_id,
                 message_id=message_id,
                 to=[to_email],  # Требуемый параметр для ответов
@@ -297,7 +297,7 @@ cd sales-agent-websocket
     async def main():
         """Основной цикл WebSocket"""
         inbox_username = os.getenv("INBOX_USERNAME", "sales-agent")
-        inbox_id = f"{inbox_username}@agentmail.to"
+        inbox_id = f"{inbox_username}@agentinbox.ru"
   
         print(f"\nAgent продаж начинает работу...")
         print(f"Входящий ящик: {inbox_id}")
@@ -305,7 +305,7 @@ cd sales-agent-websocket
   
         # Подключитесь к WebSocket
         try:
-            async with agentmail.websockets.connect() as socket:
+            async with agentinbox.websockets.connect() as socket:
                 print(f"✓ Подключено! Ожидание писем...\n")
   
                 # Подпишитесь на входящий ящик
@@ -416,13 +416,13 @@ INBOX_USERNAME=sales-agent
 Основной частью этого агента является соединение WebSocket:
 
 ```python
-from agentmail import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+from agentinbox import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
 
 # Инициализируйте асинхронный клиент
-agentmail = AsyncAgentInbox(api_key=os.getenv("AGENTINBOX_API_KEY"))
+agentinbox = AsyncAgentInbox(api_key=os.getenv("AGENTINBOX_API_KEY"))
 
 # Подключитесь и подпишитесь
-async with agentmail.websockets.connect() as socket:
+async with agentinbox.websockets.connect() as socket:
     await socket.send_subscribe(Subscribe(inbox_ids=[inbox_id]))
 ```
 
