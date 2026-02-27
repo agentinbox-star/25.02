@@ -184,7 +184,7 @@ const inboxEmail = "myinbox@agentinbox.ru"; // Из Dashboard → Inboxes
 const apiKey = process.env.AGENTINBOX_API_KEY!; // Из Dashboard → API Keys
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.agentmail.to",
+  host: "smtp.agentinbox.ru",
   port: 465,
   secure: true, // SSL обязателен
   auth: {
