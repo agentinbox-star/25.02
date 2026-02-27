@@ -73,7 +73,7 @@ cd auto-reply-agent
   
     from flask import Flask, request, Response
     import ngrok
-    from agentmail import AgentInbox
+    from agentinbox import AgentInbox
     import threading
   
     # Конфигурация
@@ -83,11 +83,11 @@ cd auto-reply-agent
   
     # Инициализируйте Flask приложение и клиент AgentInbox
     app = Flask(__name__)
-    client = AgentMail()
+    client = AgentInbox()
     processed_messages = set()  # Отслеживайте обработанные ID сообщений для предотвращения дубликатов
   
   
-    def setup_agentmail():
+    def setup_agentinbox():
         """Создайте входящий ящик и веб-хук с идемпотентностью."""
         print("Настройка инфраструктуры AgentInbox...")
   
@@ -100,7 +100,7 @@ cd auto-reply-agent
             print(f"✓ Входящий ящик создан: {inbox.inbox_id}")
         except Exception as e:
             if "already exists" in str(e).lower():
-                inbox_id = f"{INBOX_USERNAME}@agentmail.to"
+                inbox_id = f"{INBOX_USERNAME}@agentinbox.ru"
                 class SimpleInbox:
                     def __init__(self, inbox_id):
                         self.inbox_id = inbox_id
@@ -115,7 +115,7 @@ cd auto-reply-agent
         # Создайте веб-хук (или получите существующий)
         try:
             webhook = client.webhooks.create(
-                url=f"{listener.url()}/webhook/agentmail",
+                url=f"{listener.url()}/webhook/agentinbox",
                 event_types=["message.received"],
                 inbox_ids=[inbox.inbox_id],
                 client_id=f"{INBOX_USERNAME}-webhook"
@@ -129,7 +129,7 @@ cd auto-reply-agent
   
         print(f"\n✓ Настройка завершена!")
         print(f"Входящий ящик: {inbox.inbox_id}")
-        print(f"Веб-хук: {listener.url()}/webhook/agentmail\n")
+        print(f"Веб-хук: {listener.url()}/webhook/agentinbox\n")
   
         return inbox, listener
   
@@ -216,7 +216,7 @@ cd auto-reply-agent
         print("AGENT АВТООТВЕТЧИКА НА ЭЛЕКТРОННЫЕ ПИСЬМА")
         print("="*60 + "\n")
   
-        inbox, listener = setup_agentmail()
+        inbox, listener = setup_agentinbox()
   
         print(f"Агент готов!")
         print(f"Отправляйте письма на: {inbox.inbox_id}")
@@ -321,7 +321,7 @@ app = Flask(__name__)
 
 ### 2. Настройка инфраструктуры
 
-Функция `setup_agentmail()` создает ваш входящий ящик и веб-хук:
+Функция `setup_agentinbox()` создает ваш входящий ящик и веб-хук:
 
 ```python
 def setup_agentinbox():
@@ -337,7 +337,7 @@ def setup_agentinbox():
     except Exception as e:
         if "already exists" in str(e).lower():
             # Входящий ящик уже существует, это нормально!
-            inbox_id = f"{INBOX_USERNAME}@agentmail.to"
+            inbox_id = f"{INBOX_USERNAME}@agentinbox.ru"
             inbox = SimpleInbox(inbox_id)
 ```
 
@@ -351,7 +351,7 @@ def setup_agentinbox():
 
     # Создайте веб-хук
     webhook = client.webhooks.create(
-        url=f"{listener.url()}/webhook/agentmail",
+        url=f"{listener.url()}/webhook/agentinbox",
         event_types=["message.received"],  # ← Подпишитесь только на входящие письма
         client_id=f"{INBOX_USERNAME}-webhook"  # ← Идемпотентность
     )
