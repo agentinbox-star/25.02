@@ -27,7 +27,7 @@ Python SDK предоставляет как синхронные, так и а�
 
 ```python
 import asyncio
-from agentmail import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+from agentinbox import AsyncAgentInbox, Subscribe, Subscribed, MessageReceivedEvent
 
 client = AsyncAgentInbox(api_key="YOUR_API_KEY")
 
@@ -50,7 +50,7 @@ asyncio.run(main())
 ### Синхронное использование
 
 ```python
-from agentmail import AgentInbox, Subscribe, Subscribed, MessageReceivedEvent
+from agentinbox import AgentInbox, Subscribe, Subscribed, MessageReceivedEvent
 
 client = AgentInbox(api_key="YOUR_API_KEY")
 
@@ -172,7 +172,7 @@ main();
 import { useEffect, useState } from "react";
 import { AgentInboxClient, AgentInbox } from "agentinbox";
 
-function useAgentMailWebSocket(apiKey: string, inboxIds: string[]) {
+function useAgentInboxWebSocket(apiKey: string, inboxIds: string[]) {
   const [lastMessage, setLastMessage] = useState<AgentInbox.MessageReceivedEvent | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
@@ -331,7 +331,7 @@ async def main():
 **TypeScript:**
 
 ```typescript
-import { AgentInboxClient, AgentInbox, AgentInboxError } from "agentmail";
+import { AgentInboxClient, AgentInbox, AgentInboxError } from "agentinbox";
 
 const client = new AgentInboxClient({
   apiKey: process.env.AGENTINBOX_API_KEY,
