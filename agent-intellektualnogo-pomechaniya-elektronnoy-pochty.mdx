@@ -82,7 +82,7 @@ cd smart-labeling-agent
   
     from flask import Flask, request, Response
     import ngrok
-    from agentmail import AgentMail
+    from agentinbox import AgentInbox
     from openai import OpenAI
   
     # Configuration
@@ -96,7 +96,7 @@ cd smart-labeling-agent
     openai_client = OpenAI()
   
   
-    def setup_agentmail():
+    def setup_agentinbox():
         """Create inbox and webhook with idempotency."""
         # Create inbox
         try:
@@ -120,7 +120,7 @@ cd smart-labeling-agent
         # Create webhook
         try:
             client.webhooks.create(
-                url=f"{listener.url()}/webhook/agentmail",
+                url=f"{listener.url()}/webhook/agentinbox",
                 event_types=["message.received"],
                 client_id=f"{INBOX_USERNAME}-webhook"
             )
