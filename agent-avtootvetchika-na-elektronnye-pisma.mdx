@@ -324,7 +324,7 @@ app = Flask(__name__)
 Функция `setup_agentmail()` создает ваш входящий ящик и веб-хук:
 
 ```python
-def setup_agentmail():
+def setup_agentinbox():
     """Создайте входящий ящик и веб-хук с идемпотентностью."""
 
     # Создайте входящий ящик (или получите существующий)
@@ -368,7 +368,7 @@ def setup_agentmail():
 Конечная точка веб-хука получает уведомления о входящих письмах:
 
 ```python
-@app.route('/webhook/agentmail', methods=['POST'])
+@app.route('/webhook/agentinbox', methods=['POST'])
 def receive_webhook():
     """Конечная точка веб-хука для получения уведомлений о входящих письмах."""
     payload = request.json
