@@ -7,7 +7,7 @@
     "light": "#93989e",
     "dark": "#000000"
   },
-  "favicon": "/images/agentinboxlogo.jpg",
+  "favicon": "/images/unnamed.jpg",
   "navigation": {
     "global": {
       "anchors": [
@@ -152,7 +152,7 @@
       }
     ]
   },
-  "logo": "/images/agentinboxlogo.jpg",
+  "logo": "/images/unnamed.jpg",
   "navbar": {
     "links": [
       {
