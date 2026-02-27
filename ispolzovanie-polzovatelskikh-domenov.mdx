@@ -135,10 +135,6 @@ icon: "plus"
 </warning>
       </Tab>
     </Tabs>
-    <info>
-  Проверьте, что все записи (TXT, MX) были правильно импортированы в консоль (консоль будет показывать в реальном времени, если мы сможем найти записи, обычно в течение нескольких секунд).
-</info>
-
     ### Вариант B: добавьте отдельные записи
 
     Ниже приведены подробные инструкции для AWS Route53, CloudFlare и Namecheap. Инструкции различаются в зависимости от того, используете ли вы консоль AgentInbox или API непосредственно.
@@ -186,9 +182,6 @@ icon: "plus"
               - **Priority:** используйте приоритет, показанный в консоли (обычно `10`).
           </Tab>
         </Tabs>
-        <info>
-  Консоль автоматически форматирует имена записей DNS как относительные имена хостов (без полного домена), что делает их готовыми для прямого копирования-вставки у вашего поставщика DNS. Без необходимости ручного разбора!
-</info>
       </Tab>
       <Tab title="Через API">
         Если вы используете API непосредственно, записи DNS возвращаются как полностью квалифицированные имена доменов (FQDN), которые требуют некоторого ручного разбора.
@@ -267,10 +260,6 @@ icon: "plus"
 | **Names.co.uk**        | [Changing your domain's DNS settings](https://www.names.co.uk/support/articles/changing-your-domains-dns-settings/)                                                                                                                                                                                                                                                                      |
 | **Wix**                | [MX: Adding or Updating MX Records in Your Wix Account](https://support.wix.com/en/article/adding-or-updating-mx-records-in-your-wix-account) <br /> [TXT: Adding or Updating TXT Records in Your Wix Account](https://support.wix.com/en/article/adding-or-updating-txt-records-in-your-wix-account)                                                                                    |
 
-<success>
-  Как только статус домена будет `ready`, вы можете начать создавать `входящие ящики` с вашим пользовательским доменом и создавать своих агентов!
-</success>
-
 ## Решение распространенных проблем DNS
 
 DNS может быть сложным. Вот некоторые распространенные проблемы и способы их решения.
@@ -287,7 +276,7 @@ DNS может быть сложным. Вот некоторые распрос
     **Как объединить:**
 
     1. **Найдите вашу существующую SPF запись.** Она будет выглядеть примерно так: `v=spf1 include:_spf.other-domain.com ~all`
-    2. **Найдите SPF include AgentInbox.** Это `include:spf.agentmail.to`.
+    2. **Найдите SPF include AgentInbox.** Это `include:spf.agentinbox.ru`.
     3. **Объедините их.** Скопируйте `include` из AgentInbox и поместите его в вашу существующую запись, прямо перед частью `~all` или `-all`.
 
     Просто продолжайте добавлять `include:` механизмы для каждого сервиса, который вы используете. Помните, что у вас должен быть только один `v=spf1` в начале и один `~all` или `-all` в конце.
