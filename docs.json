@@ -158,6 +158,10 @@
       {
         "label": "Поддержка",
         "href": "mailto:info@patternautomation.com"
+      },
+      {
+        "label": "Консоль",
+        "href": "https://agentinbox.com"
       }
     ],
     "primary": {
