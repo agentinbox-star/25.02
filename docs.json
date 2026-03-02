@@ -117,15 +117,15 @@
               "chasto-zadavaemye-voprosy-faq",
               "izvlechenie-otvetov-po-elektronnoy-pochtes-pomoschyu-talon",
               "risoedinyaytes-k-soobschestvu-agent-inbox",
-              "podderzhka"
-            ]
-          },
-          {
-            "group": "Безопасность и Приватность",
-            "pages": [
-              "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc",
-              "sootvetstvie-soc-2",
-              "obnaruzhenie-spama-i-virusov"
+              "podderzhka",
+              {
+                "group": "Безопасность и Приватность",
+                "pages": [
+                  "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc",
+                  "sootvetstvie-soc-2",
+                  "obnaruzhenie-spama-i-virusov"
+                ]
+              }
             ]
           }
         ]
