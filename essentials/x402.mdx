@@ -1,0 +1,153 @@
+---
+title: "x402 (скоро)"
+icon: "credit-card"
+---
+
+Интеграция Agent Inbox с x402 для HTTP-native платежей
+
+---
+
+## Начало работы
+
+[x402](https://www.x402.org/) — это открытый протокол платежей, который обеспечивает HTTP-native платежи. Интегрируя x402 с Agent Inbox, ваши агенты могут оплачивать использование API прямо через HTTP без управления API ключами или подписками.
+
+### Base URLs
+
+Чтобы аутентифицироваться с помощью x402 вместо API ключа, вы должны использовать x402-специфичные base URLs ниже. Они заменяют стандартные Agent Inbox base URLs и маршрутизируют запросы через слой платежей x402.
+
+| Протокол  | URL                      |
+| --------- | ------------------------ |
+| HTTP      | `x402.api.agentinbox.to` |
+| WebSocket | `x402.ws.agentinbox.to`  |
+
+### Предварительные требования
+
+- Крипто-кошелёк с USDC средствами (EVM-совместимый кошелёк на Base или Solana кошелёк)
+- Установленный Node.js
+
+### Установка зависимостей
+
+```bash EVM
+npm install agent-inbox @x402/fetch @x402/evm viem
+```
+
+```bash Solana
+npm install agent-inbox @x402/fetch @x402/svm @solana/kit @scure/base
+```
+
+### Быстрый старт
+
+```typescript EVM
+import { privateKeyToAccount } from "viem/accounts";
+import { x402Client } from "@x402/fetch";
+import { ExactEvmScheme } from "@x402/evm/exact/client";
+
+import { AgentInboxClient } from "agent-inbox";
+
+
+// настройка x402 клиента
+
+const PRIVATE_KEY = "0x...";
+
+const signer = privateKeyToAccount(PRIVATE_KEY);
+
+const x402 = new x402Client();
+x402.register("eip155:*", new ExactEvmScheme(signer));
+
+
+// настройка Agent Inbox клиента
+
+export const client = new AgentInboxClient({ x402 });
+
+
+// создание входящих
+
+const inboxRes = await client.inboxes.create({
+  username: `x402-${Date.now()}`,
+});
+console.log("Created inbox: ", inboxRes.inboxId);
+
+
+// подписка на входящие
+
+const socket = await client.websockets.connect();
+console.log("Connected to websocket");
+
+socket.on("message", async (event) => {
+  if (event.type === "subscribed") {
+    console.log("Subscribed to", event.inboxIds);
+  } else if (event.type === "event" && event.eventType === "message.received") {
+    console.log("Received message from: ", event.message.from);
+  }
+});
+
+socket.sendSubscribe({
+  type: "subscribe",
+  inboxIds: [inboxRes.inboxId],
+});
+```
+
+```typescript Solana
+import { createKeyPairSignerFromBytes } from "@solana/kit";
+import { base58 } from "@scure/base";
+import { x402Client } from "@x402/fetch";
+import { ExactSvmClient, toClientSvmSigner } from "@x402/svm";
+
+import { AgentInboxClient } from "agent-inbox";
+
+
+// настройка x402 клиента
+
+const PRIVATE_KEY = "base58-encoded-private-key...";
+
+const keypair = await createKeyPairSignerFromBytes(
+  base58.decode(PRIVATE_KEY)
+);
+
+const x402 = new x402Client();
+x402.register("solana:*", new ExactSvmClient(toClientSvmSigner(keypair)));
+
+
+// настройка Agent Inbox клиента
+
+export const client = new AgentInboxClient({ x402 });
+
+
+// создание входящих
+
+const inboxRes = await client.inboxes.create({
+  username: `x402-${Date.now()}`,
+});
+console.log("Created inbox: ", inboxRes.inboxId);
+
+
+// подписка на входящие
+
+const socket = await client.websockets.connect();
+console.log("Connected to websocket");
+
+socket.on("message", async (event) => {
+  if (event.type === "subscribed") {
+    console.log("Subscribed to", event.inboxIds);
+  } else if (event.type === "event" && event.eventType === "message.received") {
+    console.log("Received message from: ", event.message.from);
+  }
+});
+
+socket.sendSubscribe({
+  type: "subscribe",
+  inboxIds: [inboxRes.inboxId],
+});
+```
+
+## Как это работает
+
+Когда вы передаёте `x402` клиента в `AgentInboxClient`, SDK автоматически обрабатывает переговоры о платежах для каждого API запроса. Если сервер ответит статусом `402 Payment Required`, x402 клиент подписывает платёж используя ваш кошелёк и повторяет запрос с прикреплённым платежом.
+
+Это значит, что ваш агент может использовать полный Agent Inbox API (входящие, сообщения, цепочки, вложения) без необходимости в традиционном API ключе. Платёж происходит за каждый запрос через HTTP.
+
+## Ресурсы
+
+- [x402 документация](https://www.x402.org/)
+- [Agent Inbox API reference](/api-reference)
+- [WebSockets обзор](/websockets)
