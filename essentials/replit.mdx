@@ -3,27 +3,27 @@ title: "Replit"
 icon: "computer-classic"
 ---
 
-Integrate Agent Inbox with your Replit apps and agents slug: integrations/replit description: Agent Inbox's Replit integration
+Интегрируйте Agent Inbox со своими приложениями и агентами на Replit
 
 ---
 
-## Getting started
+## Начало работы
 
-Replit is a cloud-based app and agent builder with a built in IDE, AI assistant, and deployment infrastructure.
+Replit — это облачный конструктор приложений и агентов с встроенной IDE, AI-помощником и инфраструктурой развёртывания.
 
-Agent Inbox is a "connector" integration on Replit, meaning your Replit apps and agents can use it directly.
+Agent Inbox — это интеграция-коннектор на Replit, то есть ваши приложения и агенты на Replit могут использовать её напрямую.
 
-### Setup
+### Настройка
 
-Navigate to the Integrations tab in the Replit builder. Find Agent Inbox and click Connect/Sign in. Then paste in your Agent Inbox API key from the Agent Inbox Console. That's it.
+Перейдите на вкладку Integrations (Интеграции) в конструкторе Replit. Найдите Agent Inbox и нажмите Connect/Sign in (Подключить/Войти). Затем вставьте свой ключ API Agent Inbox из консоли Agent Inbox. Вот и всё.
 
-## How it works
+## Как это работает
 
-Replit uses Mastra, a TypeScript framework for building agents. Every time you create a new app/agent Replit will generate a set of Mastra tools to interface with the Agent Inbox API, based on your use case and requirements.
+Replit использует Mastra — TypeScript фреймворк для создания агентов. Каждый раз, когда вы создаёте новое приложение или агента, Replit генерирует набор инструментов Mastra для взаимодействия с API Agent Inbox на основе вашего варианта использования и требований.
 
-Below is a collection of prebuilt tools that Replit can use out of the box to serve virtually any use case.
+Ниже представлена коллекция готовых инструментов, которые Replit может использовать из коробки практически для любого случая.
 
-### Tools
+### Инструменты
 
 ```typescript TypeScript
 import { createTool } from '@mastra/core/tools'
@@ -32,51 +32,51 @@ import { z } from 'zod'
 import { AgentInboxClient } from 'agent-inbox'
 
 const ListItemsInput = z.object({
-    limit: z.number().optional().describe('Max number of items to return'),
-    pageToken: z.string().optional().describe('Pagination page token'),
+    limit: z.number().optional().describe('Максимальное количество возвращаемых элементов'),
+    pageToken: z.string().optional().describe('Токен страницы для пагинации'),
 })
 
-const InboxId = z.string().describe('ID of inbox')
+const InboxId = z.string().describe('ID входящих')
 
 const GetInboxInput = z.object({ inboxId: InboxId })
 
 const CreateInboxInput = z.object({
-    username: z.string().optional().describe('Username'),
-    domain: z.string().optional().describe('Domain'),
-    displayName: z.string().optional().describe('Display name'),
+    username: z.string().optional().describe('Имя пользователя'),
+    domain: z.string().optional().describe('Домен'),
+    displayName: z.string().optional().describe('Отображаемое имя'),
 })
 
 const ListInboxItemsInput = ListItemsInput.extend({
     inboxId: InboxId,
-    labels: z.array(z.string()).optional().describe('Filter items with labels'),
-    before: z.coerce.date().optional().describe('Filter items before datetime'),
-    after: z.coerce.date().optional().describe('Filter items after datetime'),
+    labels: z.array(z.string()).optional().describe('Фильтровать элементы по меткам'),
+    before: z.coerce.date().optional().describe('Фильтровать элементы до даты/времени'),
+    after: z.coerce.date().optional().describe('Фильтровать элементы после даты/времени'),
 })
 
 const GetThreadInput = GetInboxInput.extend({
-    threadId: z.string().describe('ID of thread'),
+    threadId: z.string().describe('ID цепочки'),
 })
 
-const MessageId = z.string().describe('ID of message')
+const MessageId = z.string().describe('ID сообщения')
 
 const BaseMessageInput = z.object({
     inboxId: InboxId,
-    text: z.string().optional().describe('Plain text body'),
-    html: z.string().optional().describe('HTML body'),
-    labels: z.array(z.string()).optional().describe('Labels'),
+    text: z.string().optional().describe('Текстовое тело сообщения'),
+    html: z.string().optional().describe('HTML тело сообщения'),
+    labels: z.array(z.string()).optional().describe('Метки'),
 })
 
 const SendMessageInput = BaseMessageInput.extend({
-    to: z.union([z.string(), z.array(z.string())]).describe('To recipients'),
+    to: z.union([z.string(), z.array(z.string())]).describe('Адресаты'),
     cc: z
         .union([z.string(), z.array(z.string())])
         .optional()
-        .describe('CC recipients'),
+        .describe('Копия'),
     bcc: z
         .union([z.string(), z.array(z.string())])
         .optional()
-        .describe('BCC recipients'),
-    subject: z.string().optional().describe('Subject'),
+        .describe('Скрытая копия'),
+    subject: z.string().optional().describe('Тема'),
 })
 
 const ReplyToMessageInput = BaseMessageInput.extend({ messageId: MessageId })
@@ -84,13 +84,13 @@ const ReplyToMessageInput = BaseMessageInput.extend({ messageId: MessageId })
 const UpdateMessageInput = z.object({
     inboxId: InboxId,
     messageId: MessageId,
-    addLabels: z.array(z.string()).optional().describe('Labels to add'),
-    removeLabels: z.array(z.string()).optional().describe('Labels to remove'),
+    addLabels: z.array(z.string()).optional().describe('Метки для добавления'),
+    removeLabels: z.array(z.string()).optional().describe('Метки для удаления'),
 })
 
 const listInboxesTool = createTool({
     id: 'list-inboxes',
-    description: 'List inboxes',
+    description: 'Список входящих',
     inputSchema: ListItemsInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -100,7 +100,7 @@ const listInboxesTool = createTool({
 
 const createInboxTool = createTool({
     id: 'create-inbox',
-    description: 'Create inbox',
+    description: 'Создать входящие',
     inputSchema: CreateInboxInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -110,7 +110,7 @@ const createInboxTool = createTool({
 
 const deleteInboxTool = createTool({
     id: 'delete-inbox',
-    description: 'Delete inbox',
+    description: 'Удалить входящие',
     inputSchema: GetInboxInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -120,7 +120,7 @@ const deleteInboxTool = createTool({
 
 const listThreadsTool = createTool({
     id: 'list-threads',
-    description: 'List threads',
+    description: 'Список цепочек',
     inputSchema: ListInboxItemsInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -130,7 +130,7 @@ const listThreadsTool = createTool({
 
 const getThreadTool = createTool({
     id: 'get-thread',
-    description: 'Get thread and its messages',
+    description: 'Получить цепочку и её сообщения',
     inputSchema: GetThreadInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -140,7 +140,7 @@ const getThreadTool = createTool({
 
 const sendMessageTool = createTool({
     id: 'send-message',
-    description: 'Send message',
+    description: 'Отправить сообщение',
     inputSchema: SendMessageInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -150,7 +150,7 @@ const sendMessageTool = createTool({
 
 const replyToMessageTool = createTool({
     id: 'reply-to-message',
-    description: 'Reply to message',
+    description: 'Ответить на сообщение',
     inputSchema: ReplyToMessageInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -160,7 +160,7 @@ const replyToMessageTool = createTool({
 
 const updateMessageTool = createTool({
     id: 'update-message',
-    description: 'Update message',
+    description: 'Обновить сообщение',
     inputSchema: UpdateMessageInput,
     execute: ({ context }) => {
         const client = new AgentInboxClient()
@@ -180,34 +180,34 @@ export const tools = {
 }
 ```
 
-## About Agent Inbox
+## Об Agent Inbox
 
-Agent Inbox is the email inbox platform for AI agents. It gives agents their own email inboxes, like Gmail does for humans. Unlike other email APIs, Agent Inbox is for both sending and receiving, supporting two-way email conversations.
+Agent Inbox — это платформа email-входящих для AI агентов. Она даёт агентам собственные email-ящики, как Gmail для людей. В отличие от других email API, Agent Inbox предназначен как для отправки, так и для получения сообщений, поддерживая двусторонние email-разговоры.
 
-Email is critical to identity and communication on the internet. Much of the context that people use for their work exists within email. Agent Inbox enables AI agents to meet people where they work and use the internet like humans do.
+Email критичен для идентичности и коммуникации в интернете. Большая часть контекста, используемого людьми в работе, находится в email. Agent Inbox позволяет AI агентам встречать людей там, где они работают, и использовать интернет как люди.
 
-### Features
+### Функции
 
-1. **Programmatic inboxes:** Create, manage, and delete inboxes via API
-2. **Threads and replies:** Facilitate 2-way email conversations with persistent and relevant context
-3. **Attachments:** Send, receive, and download attachments so agents can work with documents
-4. **Realtime events:** Build event-driven agents and systems with Webhooks and Websockets
-5. **Custom domains:** Whitelabel your or your customers' inboxes to automate client-facing work
-6. **Language/Framework SDKs:** Use your preferred language and framework
+1. **Программные входящие:** Создавайте, управляйте и удаляйте входящие через API
+2. **Цепочки и ответы:** Облегчайте двусторонние email-разговоры с постоянным релевантным контекстом
+3. **Вложения:** Отправляйте, получайте и скачивайте вложения, чтобы агенты могли работать с документами
+4. **События в реальном времени:** Создавайте event-driven агентов и системы с Webhooks и Websockets
+5. **Собственные домены:** Приватизируйте входящие для вас или ваших клиентов, чтобы автоматизировать клиентскую работу
+6. **SDK для языков и фреймворков:** Используйте свой предпочитаемый язык и фреймворк
 
-### Use cases
+### Варианты использования
 
-1. **Process inbound:** Receive, triage, and process inbound emails
-2. **Automate outbound:** Draft, schedule, and send outbound emails
-3. **Join conversations:** Address an agent directly or CC it in an existing email thread
-4. **Identify and authenticate:** Agents can sign up, receive 2FA codes, and authenticate with any application
+1. **Обработка входящих:** Получайте, сортируйте и обрабатывайте входящие письма
+2. **Автоматизация исходящих:** Составляйте, планируйте и отправляйте исходящие письма
+3. **Присоединение к разговорам:** Обращайтесь к агенту напрямую или добавляйте его в копию к существующей цепочке
+4. **Идентификация и аутентификация:** Агенты могут зарегистрироваться, получить коды 2FA и аутентифицироваться в любом приложении
 
-### Verticals
+### Вертикали
 
-1. **Operations:** Automate internal workflows, vendor communications, and cross-team coordination
-2. **Support:** Handle customer inquiries, ticket management, and automated responses at scale
-3. **Procurement:** Streamline vendor onboarding, RFP processes, and purchase order management
-4. **Sales:** Automate lead qualification, follow-ups, and customer outreach campaigns
-5. **Recruiting:** Automate candidate outreach, interview scheduling, and applicant communication
+1. **Операции:** Автоматизируйте внутренние рабочие процессы, коммуникацию с поставщиками и координацию между командами
+2. **Поддержка:** Обрабатывайте запросы клиентов, управление билетами и автоматические ответы в масштабе
+3. **Закупки:** Оптимизируйте onboarding поставщиков, процессы RFP и управление покупками
+4. **Продажи:** Автоматизируйте квалификацию лидов, follow-up и кампании охвата клиентов
+5. **Рекрутинг:** Автоматизируйте outreach кандидатов, планирование интервью и коммуникацию с претендентами
 
-These are just a few select verticals, but we have seen Agent Inbox be effective in automating any email task across every function. If a human does it with email, it can be automated with Agent Inbox.
+Это лишь несколько выбранных вертикалей, но мы видели, что Agent Inbox эффективен при автоматизации любой email-задачи во всех функциях. Если человек делает это с помощью email, это может быть автоматизировано с помощью Agent Inbox.
