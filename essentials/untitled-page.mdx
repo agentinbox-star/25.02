@@ -1,0 +1,263 @@
+---
+title: "ИИ-подключение"
+icon: "user-tag"
+---
+
+Ресурсы для AI кодовых помощников, MCP серверов, навыков и документации, дружественной к агентам.
+
+---
+
+Если вы разрабатываете с использованием AI, Agent Inbox предлагает несколько ресурсов для улучшения вашего опыта.
+
+## Предварительное условие: Создайте API ключ
+
+Вам нужно, чтобы человек создал учётную запись Agent Inbox на консоле. После создания учётной записи создайте API ключ из панели управления. С API ключом ваш агент может создавать входящие, отправлять и получать письма, управлять цепочками и многое другое.
+
+## Agent Inbox MCP Server
+
+MCP (Model Context Protocol) — это открытый протокол, который стандартизирует способ предоставления контекста приложениями для LLM. MCP сервер Agent Inbox даёт вашему AI агенту инструменты для создания входящих, отправки писем, управления цепочками и многого другого.
+
+### Настройка
+
+Добавьте это в конфигурацию вашего MCP клиента (Claude Code, Cursor, Codex и т.д.):
+
+```json
+{
+  "mcpServers": {
+    "AgentInbox": {
+      "command": "npx",
+      "args": ["-y", "agent-inbox-mcp"],
+      "env": {
+        "AGENT_INBOX_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Вы можете выборочно включить конкретные инструменты, используя аргумент `--tools`:
+
+```json
+{
+  "mcpServers": {
+    "AgentInbox": {
+      "command": "npx",
+      "args": ["-y", "agent-inbox-mcp", "--tools", "get_message,send_message,reply_to_message"],
+      "env": {
+        "AGENT_INBOX_API_KEY": "YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+### Доступные MCP инструменты
+
+| Инструмент         | Описание                                    |
+| ------------------ | ------------------------------------------- |
+| `create_inbox`     | Создать новый email входящий для агента     |
+| `list_inboxes`     | Список всех входящих в вашей учётной записи |
+| `get_inbox`        | Получить подробности конкретного входящего  |
+| `delete_inbox`     | Удалить входящий                            |
+| `send_message`     | Отправить письмо из входящего агента        |
+| `reply_to_message` | Ответить на письмо в цепочке                |
+| `forward_message`  | Переслать письмо                            |
+| `update_message`   | Обновить метки или статус сообщения         |
+| `list_threads`     | Список цепочек писем во входящем            |
+| `get_thread`       | Получить полную цепочку с сообщениями       |
+| `get_attachment`   | Скачать вложение письма                     |
+
+<Card icon="toolbox" href="https://github.com/agentinbox-to/agent-inbox-mcp" title="MCP Server на GitHub">
+  Посмотрите исходный код, внесите вклад или сообщите об ошибках.
+</Card>
+
+## Документация Agent Inbox для агентов
+
+Вы можете предоставить вашему агенту текущую документацию тремя способами:
+
+1. **Полный индекс документации**
+
+   Структурированный индекс каждой страницы документации с описаниями:
+
+   ```text
+   https://docs.agentinbox.ru/llms.txt
+   ```
+2. **Полная документация в одном файле**
+
+   Каждая страница документации объединена в один файл для полного контекста:
+
+   ```text
+   https://docs.agentinbox.ru/llms-full.txt
+   ```
+3. **Markdown версии любой страницы**
+
+   Каждая страница документации доступна в Markdown. Добавьте `.md` к любому URL страницы:
+
+   ```text
+   https://docs.agentinbox.ru/quickstart.md
+   ```
+
+## Agent Inbox Skills
+
+Skills дают AI агентам специализированные знания для конкретных задач. Установите Agent Inbox skill, чтобы дать вашему кодовому помощнику полные возможности email:
+
+### Claude Code
+
+```bash
+claude-code skills install agentinbox-ru/agent-inbox-skills/agent-inbox
+```
+
+### Cursor
+
+```bash
+cursor skills install agentinbox-ru/agent-inbox-skills/agent-inbox
+```
+
+### Codex
+
+```bash
+codex skills install agentinbox-ru/agent-inbox-skills/agent-inbox
+```
+
+### Ручная установка
+
+```bash
+git clone https://github.com/agentinbox-ru/agent-inbox-skills.git ~/.skills/agent-inbox
+```
+
+Затем установите ваш API ключ:
+
+```bash
+export AGENT_INBOX_API_KEY="your-api-key-here"
+```
+
+<Card icon="code" href="https://github.com/agentinbox-to/agent-inbox-skills" title="Skills на GitHub">
+  Посмотрите исходный код skills и полную документацию.
+</Card>
+
+## Быстрый старт для агентов
+
+Создайте входящий и отправьте своё первое письмо в несколько строк:
+
+```python Python
+from agent_inbox import AgentInbox
+
+client = AgentInbox(api_key="ai_...")
+inbox = client.inboxes.create(display_name="My AI Agent")
+print(f"Agent email: {inbox.inbox_id}")
+
+# Отправить письмо
+client.inboxes.messages.send(
+    inbox.inbox_id,
+    to="user@example.com",
+    subject="Hello from my AI agent",
+    text="Hi! I'm an AI agent with my own email address."
+)
+```
+
+```typescript TypeScript
+import { AgentInboxClient } from "agent-inbox";
+
+const client = new AgentInboxClient({ apiKey: "ai_..." });
+const inbox = await client.inboxes.create({ displayName: "My AI Agent" });
+console.log(`Agent email: ${inbox.inboxId}`);
+
+// Отправить письмо
+await client.inboxes.messages.send(inbox.inboxId, {
+    to: "user@example.com",
+    subject: "Hello from my AI agent",
+    text: "Hi! I'm an AI agent with my own email address."
+});
+```
+
+### Получение и ответ на письма
+
+```python Python
+# Список цепочек во входящем
+threads = client.inboxes.threads.list(inbox_id=inbox.inbox_id)
+
+# Получить последнюю цепочку
+thread = client.inboxes.threads.get(
+    inbox_id=inbox.inbox_id,
+    thread_id=threads.threads[0].thread_id
+)
+
+# Ответить на последнее сообщение
+latest_message = thread.messages[-1]
+client.inboxes.messages.reply(
+    inbox_id=inbox.inbox_id,
+    message_id=latest_message.message_id,
+    to=[latest_message.from_],
+    text="Thanks for your email! I'll look into this."
+)
+```
+
+```typescript TypeScript
+// Список цепочек во входящем
+const threads = await client.inboxes.threads.list(inbox.inboxId);
+
+// Получить последнюю цепочку
+const thread = await client.inboxes.threads.get(
+    inbox.inboxId,
+    threads.threads[0].threadId
+);
+
+// Ответить на последнее сообщение
+const latestMessage = thread.messages[thread.messages.length - 1];
+await client.inboxes.messages.reply(
+    inbox.inboxId,
+    latestMessage.messageId,
+    { to: [latestMessage.from], text: "Thanks for your email! I'll look into this." }
+);
+```
+
+## Интеграции с AI платформами
+
+Agent Inbox интегрируется с популярными платформами разработки AI:
+
+<CardGroup cols={2}>
+  <Card icon="laptop" href="/integrations/replit" title="Replit">
+    Создавайте email агентов на Replit с нашим шаблоном.
+  </Card>
+  <Card icon="code" href="/integrate-livekit-agents" title="LiveKit">
+    Добавьте email к голосовым агентам LiveKit.
+  </Card>
+  <Card icon="user-robot" href="/integrations/openclaw" title="OpenClaw">
+    Используйте Agent Inbox с агентами OpenClaw.
+  </Card>
+  <Card icon="code-fork" href="/websockets" title="WebSockets">
+    События email в реальном времени без webhooks.
+  </Card>
+</CardGroup>
+
+## Что делает Agent Inbox особенным?
+
+В отличие от традиционных email API (SendGrid, Resend, Mailgun), которые построены для одностороннего трансакционного email, Agent Inbox построен для **двусторонней коммуникации агентов**:
+
+| Функция                   | Agent Inbox                   | Традиционные Email APIs  |
+| ------------------------- | ----------------------------- | ------------------------ |
+| Per-agent входящие        | ✅ Создавайте тысячи через API | ❌ Общие домены отправки  |
+| Получение и парсинг писем | ✅ Нативно с цепочками         | ⚠️ Ограничено или add-on |
+| Цепочки разговоров        | ✅ Первоклассная поддержка API | ❌ Не поддерживается      |
+| Allowlists/blocklists     | ✅ Контролы per-inbox          | ❌ Недоступно             |
+| Multi-tenant (Pods)       | ✅ Встроенная изоляция         | ❌ Строить самостоятельно |
+| WebSocket события         | ✅ Real-time streaming         | ❌ Только webhooks        |
+| IMAP/SMTP доступ          | ✅ Полная поддержка протокола  | ❌ Только API             |
+| Usage-based pricing       | ✅ Плата за письмо             | ❌ Per-inbox подписки     |
+
+## Следующие шаги
+
+<CardGroup>
+  <Card icon="book-font" href="/quickstart" title="Полное руководство быстрого старта">
+    Пошаговая настройка с переменными окружения и лучшими практиками.
+  </Card>
+  <Card icon="code-simple" href="/api-reference" title="API Reference">
+    Полная интерактивная документация API.
+  </Card>
+  <Card icon="message" href="/examples/auto-reply-agent" title="Пример: Auto-Reply агент">
+    Создайте агента, который отвечает на письма в реальном времени.
+  </Card>
+  <Card icon="question" href="/resources/faq" title="FAQ">
+    Ответы на частые вопросы о email, доставляемости и паттернах агентов.
+  </Card>
+</CardGroup>

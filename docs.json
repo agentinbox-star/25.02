@@ -58,6 +58,7 @@
           {
             "group": "Интеграции",
             "pages": [
+              "essentials/untitled-page",
               "essentials/navyki",
               "essentials/mcp",
               "essentials/open-claw",
