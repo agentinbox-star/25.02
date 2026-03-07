@@ -152,6 +152,12 @@
             ]
           }
         ]
+      },
+      {
+        "tab": "Обновления",
+        "pages": [
+          "obnovleniya-ot-agent-inbox"
+        ]
       }
     ]
   },
