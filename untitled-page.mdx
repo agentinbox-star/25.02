@@ -1,0 +1,373 @@
+---
+icon: "envelope"
+title: "Сообщение"
+---
+
+Фундаментальная единица коммуникации для ваших агентов.
+
+## Что такое сообщение?
+
+В экосистеме AgentInbox `сообщение` — это API-first представление традиционного письма. Это структурированный объект, содержащий все элементы, которые вы ожидаете: отправителя, получателей, строку темы и тело письма.
+
+Каждое `сообщение` живет внутри `цепи`, чтобы беседы были организованными. Когда вы отправляете новое `сообщение`, создается новая `цепь`. Когда вы отвечаете, новое `сообщение` добавляется в существующую `цепь`. Буквально обычная цепь писем, как мы ее знаем.
+
+Одной из мощных возможностей AgentInbox является возможность беспрепятственно включить людей в управляемые агентом беседы. Вы можете скопировать или скрытно скопировать реального человека на любое письмо, которое отправляет ваш агент, создавая рабочий процесс "человека в цикле" для надзора, эскалаций или обеспечения качества.
+
+## Основные возможности
+
+Вы можете взаимодействовать с ресурсами `сообщения` несколькими способами, от отправки новых `сообщений` до перечисления истории переписки.
+
+### 1. Инициализируйте клиент
+
+Сначала вам нужно инициализировать клиент AgentInbox с вашим API ключом. Этот объект клиента — это ваш шлюз для взаимодействия с API AgentInbox.
+
+`from agentinbox import AgentInbox`
+
+`client = AgentInbox(api_key="YOUR_API_KEY")`
+
+### 2. Отправьте новое `сообщение`
+
+Чтобы начать новую беседу, вы можете отправить `сообщение` из одного из ваших входящих ящиков. Это действие создаст новую `цепь` и вернет объект `сообщение`.
+
+`# You'll need an inbox ID to send from.`
+
+`# Let's assume we have one:`
+
+`sent_message = client.inboxes.messages.send(`
+
+`inbox_id = 'my_inbox@domain.com',`
+
+`to = 'recipient@domain.com',`
+
+`labels=[`
+
+`"outreach",`
+
+`"startup"`
+
+`],`
+
+`subject="[YC W26] Founder Reachout ",`
+
+`text="Hello, I'm Daniel, and I'm a Co-founder at AgentInbox...",`
+
+`html="<div dir=\"ltr\">Hello,<br /><br />I'm Daniel, and I'm a Co-founder at AgentInbox..."`
+
+`)`
+
+`print(f"Message sent successfully with ID: {sent_message.message_id}")`
+
+### 3. Перечислите `сообщения` в `входящем ящике`
+
+Вы можете получить список всех `сообщений` в определенном `входящем ящике`. Это полезно для получения истории всей переписки.
+
+`all_messages = client.inboxes.messages.list(inbox_id='my_inbox@agentinbox.ru')`
+
+`print(f"Found {all_messages.count} messages in the inbox.")`
+
+### 4. Ответьте на `сообщение`
+
+Ответ на существующее `сообщение` добавляет ваше новое `сообщение` в ту же `цепь`, сохраняя беседу организованной.
+
+`# Python example`
+
+`reply = client.inboxes.messages.reply(`
+
+`    inbox_id='my_inbox@domain.com'`
+
+`    message_id='msg_id',`
+
+`    text="Thanks for the referral!",`
+
+`    attachments=[`
+
+`        SendAttachment(`
+
+`            content="resume" # this would obviously be your resume content, refer to the attachment section of the core-concepts for more details`
+
+`        )`
+
+`    ]`
+
+`)`
+
+`print(f"Reply sent successfully with ID: {reply.message_id}")`
+
+<Callout>
+  Обратите внимание, что `inbox_id` в ответе отличается от отправки, в том, что это `inbox_id`, из которого мы отправляем. Помните, что мы можем иметь потенциально бесконечное количество `входящих ящиков` для отправки, поэтому нам нужно сказать API, из какого мы отправляем.
+</Callout>
+
+### 5. Получите `сообщение`
+
+Вы можете получить сведения о любом конкретном `сообщении`, указав его ID и `inbox_id`, к которому оно принадлежит.
+
+`message = client.inboxes.messages.get(inbox_id = 'my_inbox@agentinbox.ru', message_id = 'msg_id')`
+
+`print(f"Retrieved message with subject: {message.subject}")`
+
+### Создание вашего сообщения: HTML, текст и CSS
+
+При отправке `сообщения` вы можете предоставить тело в двух форматах: `text` для текстовой версии и `html` для богатой, стилизованной версии.
+
+- **`text`**: Простая, неотформатированная строка. Это резервная версия для почтовых клиентов, которые не отображают HTML, обеспечивая читаемость вашего сообщения.
+- **`html`**: Полный HTML документ. Это позволяет вам создавать визуально насыщенные письма с пользовательскими макетами, цветами, шрифтами и изображениями.
+
+<Tip>
+  **Лучшая практика**: Всегда отправляйте обе версии `text` и `html`.
+</Tip>
+
+## "Почему и текст, и HTML?"
+
+Большинство современных почтовых клиентов отображают версию HTML, но не все из них могут отображать HTML — резервная текстовая версия гарантирует, что ваше сообщение отображается в любом случае. Кроме того, это значительно улучшает доставляемость.
+
+#### Стилизация с помощью CSS
+
+Для стилизации вашего HTML в `сообщении` вы должны встроить ваш CSS непосредственно в тег `<style>` в `<head>` в полезной нагрузке запроса API. Это наиболее надежный метод для обеспечения применения ваших стилей во всех различных почтовых клиентах, таких как Gmail, Outlook и Apple Mail.
+
+Вот пример хорошо структурированного и стилизованного заголовка HTML:
+
+`<html>`
+
+`  <head>`
+
+`    <meta charset="UTF-8">`
+
+`    <meta name="viewport" content="width=device-width, initial-scale=1.0">`
+
+`    <title>Your AgentInbox Invoice</title>`
+
+`    <style>`
+
+`      body {`
+
+`        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;`
+
+`        line-height: 1.6;`
+
+`        color: #333;`
+
+`        max-width: 600px;`
+
+`        margin: 0 auto;`
+
+`        padding: 20px;`
+
+`        background-color: #f8f9fa;`
+
+`      }`
+
+`      .email-wrapper {`
+
+`        background: #ffffff;`
+
+`        border: 1px solid #e9ecef;`
+
+`        border-radius: 8px;`
+
+`        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);`
+
+`        overflow: hidden;`
+
+`      }`
+
+`      .email-header {`
+
+`        background-color: #000000;`
+
+`        color: #ffffff;`
+
+`        padding: 24px;`
+
+`        text-align: center;`
+
+`      }`
+
+`      .email-header h1 {`
+
+`        margin: 0;`
+
+`        font-size: 24px;`
+
+`        font-weight: 600;`
+
+`      }`
+
+`      .email-content {`
+
+`        padding: 32px;`
+
+`      }`
+
+`      .greeting {`
+
+`        font-size: 18px;`
+
+`        font-weight: 500;`
+
+`        margin-bottom: 24px;`
+
+`      }`
+
+`      .main-message {`
+
+`        font-size: 16px;`
+
+`        margin-bottom: 24px;`
+
+`      }`
+
+`      .cta-button {`
+
+`        display: inline-block;`
+
+`        padding: 12px 24px;`
+
+`        background-color: #1a73e8;`
+
+`        color: #ffffff;`
+
+`        text-decoration: none;`
+
+`        border-radius: 6px;`
+
+`        font-weight: 500;`
+
+`        font-size: 16px;`
+
+`        margin-top: 8px;`
+
+`        margin-bottom: 24px;`
+
+`      }`
+
+`      .invoice-details {`
+
+`        background-color: #f8f9fa;`
+
+`        padding: 16px;`
+
+`        border-radius: 6px;`
+
+`        margin-bottom: 24px;`
+
+`        border: 1px solid #dee2e6;`
+
+`      }`
+
+`      .invoice-details p {`
+
+`        margin: 0;`
+
+`        font-size: 14px;`
+
+`      }`
+
+`      .invoice-details strong {`
+
+`        color: #000;`
+
+`      }`
+
+`      .signature {`
+
+`        margin-top: 24px;`
+
+`        font-size: 14px;`
+
+`        color: #555;`
+
+`      }`
+
+`      .email-footer {`
+
+`        text-align: center;`
+
+`        padding: 20px;`
+
+`        font-size: 12px;`
+
+`        color: #6c757d;`
+
+`      }`
+
+`      .email-footer a {`
+
+`        color: #1a73e8;`
+
+`        text-decoration: none;`
+
+`      }`
+
+`    </style>`
+
+`  </head>`
+
+`  <body>`
+
+`    <div class="email-wrapper">`
+
+`      <div class="email-header">`
+
+`        <h1>AgentInbox</h1>`
+
+`      </div>`
+
+`      <div class="email-content">`
+
+`        <div class="greeting">Hi there,</div>`
+
+`        <div class="main-message">`
+
+`          Your invoice for the period of March 2026 is ready. We've automatically charged your saved payment method. Thank you for your business!`
+
+`        </div>`
+
+`        <div class="invoice-details">`
+
+`          <p><strong>Invoice Number:</strong> INV-2025-10-0123</p>`
+
+`          <p><strong>Amount:</strong> $79.00</p>`
+
+`          <p><strong>Status:</strong> Paid</p>`
+
+`        </div>`
+
+`        <a href="#" class="cta-button">View Full Invoice</a>`
+
+`        <div class="signature">`
+
+`          Best regards,<br />`
+
+`          The PATTERN AUTOMATION Team`
+
+`        </div>`
+
+`      </div>`
+
+`    </div>`
+
+`    <div class="email-footer">`
+
+`      <p>&copy; 2026 AgentInbox, Inc. All Rights Reserved.</p>`
+
+`      <p><a href="#">Unsubscribe</a> | <a href="#">Billing Settings</a></p>`
+
+`    </div>`
+
+`  </body>`
+
+`</html>`
+
+<Frame caption="Посмотрите, как красиво выглядит это сообщение!">
+  ![rendered css](file:157e90c8-461b-4937-a712-d37e9a22b853)
+</Frame>
+
+## Получение `сообщений`
+
+Хотя вы можете периодически перечислять `сообщения` для проверки новых писем, наиболее эффективный способ обработки входящих `сообщений` для ваших агентов — использование `веб-хуков`. Путем настройки конечной точки `веб-хука`, AgentInbox может уведомить ваше приложение/агента в реальном времени, как только прибудет новое `сообщение`, чтобы вы могли принять меры.
+
+<CardGroup>
+  <Card icon="webhook" href="/overview" title="Справка: Веб-хуки">
+    Узнайте, как настроить веб-хуки для обработки сообщений в реальном времени.
+  </Card>
+</CardGroup>

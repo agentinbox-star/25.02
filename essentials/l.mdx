@@ -1,0 +1,228 @@
+---
+title: "IMAP и SMTP"
+icon: "envelope-open-text"
+---
+
+Подключитесь к AgentInbox со стандартными протоколами электронной почты
+
+AgentInbox поддерживает стандартные протоколы IMAP и SMTP, позволяя вам подключаться, используя традиционные почтовые клиенты или интегрировать с существующими системами, которые полагаются на эти протоколы.
+
+## Что такое IMAP и SMTP?
+
+**IMAP (Internet Message Access Protocol)** и **SMTP (Simple Mail Transfer Protocol)** — это стандартные протоколы, питающие коммуникацию электронной почты по всему интернету.
+
+- **IMAP** используется для **чтения и управления письмами**. Он позволяет почтовым клиентам синхронизироваться с почтовым сервером, сохраняя ваши сообщения организованными на нескольких устройствах. Когда вы проверяете свой входящий ящик в Outlook или Thunderbird, вы используете IMAP.
+- **SMTP** используется для **отправки писем**. Когда вы нажимаете "Отправить" на письме, SMTP обрабатывает доставку этого сообщения на почтовый сервер получателя.
+
+### Зачем использовать IMAP/SMTP с AgentInbox?
+
+- **Интеграция почтового клиента**: подключите Outlook, Thunderbird, Apple Mail или любой IMAP/SMTP-совместимый клиент к входящему ящику AgentInbox
+- **Программный доступ**: отправляйте и получайте письма, используя стандартные библиотеки (такие как Python `imaplib` или `smtplib`) на любом языке программирования
+- **Интеграция наследованных систем**: соедините AgentInbox с существующими системами, поддерживающими только протоколы IMAP/SMTP
+- **Знакомые инструменты**: используйте почтовые инструменты, которые вы уже знаете, во время разработки и тестирования
+
+## Поиск ваших учетных данных
+
+Перед настройкой IMAP или SMTP вам потребуются две информации из консоли AgentInbox:
+
+<Steps>
+  <Step title="Получите ID входящего ящика (имя пользователя)">
+    Перейдите на **Dashboard → Inboxes** и найдите колонку **Inbox ID**. Ваш ID входящего ящика — это адрес электронной почты входящего ящика (например, `myinbox@agentinbox.ru`). Это будет ваше имя пользователя для аутентификации IMAP.
+  </Step>
+  <Step title="Получите свой API ключ (пароль)">
+    Перейдите на **Dashboard → API Keys** и создайте или скопируйте API ключ — это будет ваш пароль.
+  </Step>
+</Steps>
+
+## Конфигурация IMAP
+
+Используйте IMAP для чтения писем из входящего ящика AgentInbox.
+
+<Callout>
+  SSL/TLS **требуется** для всех соединений IMAP. Соединения без SSL будут отклонены. Убедитесь, что SSL/TLS включен в настройках почтового клиента.
+</Callout>
+
+| Параметр     | Значение                                                              |
+| ------------ | --------------------------------------------------------------------- |
+| **Host**     | `imap.agentinbox.ru`                                                  |
+| **Port**     | `993`                                                                 |
+| **Username** | Электронная почта входящего ящика (например, `myinbox@agentinbox.ru`) |
+| **Password** | Ваш API ключ                                                          |
+| **SSL/TLS**  | **Обязателен** (должен быть включен)                                  |
+
+<Callout>
+  В настоящее время только папка **INBOX** доступна через IMAP. Другие папки (Sent, Drafts, Trash) недоступны через IMAP. Используйте [API AgentInbox](/introduction) для полного доступа к папкам.
+</Callout>
+
+### Пример Python IMAP
+
+```python
+import imaplib
+import os
+import email
+
+# Ваши учетные данные из консоли AgentInbox
+inbox_email = "myinbox@agentinbox.ru"  # Из Dashboard → Inboxes
+api_key = os.getenv("AGENTINBOX_API_KEY")  # Из Dashboard → API Keys
+
+# Подключитесь с SSL (обязательно)
+imap = imaplib.IMAP4_SSL("imap.agentinbox.ru", 993)
+
+try:
+    # Аутентифицируйтесь, используя электронную почту входящего ящика как имя пользователя
+    imap.login(inbox_email, api_key)
+
+    # Выберите INBOX (единственная поддерживаемая папка)
+    imap.select("INBOX")
+
+    # Поиск всех сообщений
+    status, message_ids = imap.search(None, "ALL")
+
+    if status == "OK":
+        for msg_id in message_ids[0].split():
+            # Получите сообщение
+            status, msg_data = imap.fetch(msg_id, "(RFC822)")
+            if status == "OK":
+                email_body = msg_data[0][1]
+                message = email.message_from_bytes(email_body)
+                print(f"Subject: {message['subject']}")
+finally:
+    imap.logout()
+```
+
+### Пример TypeScript IMAP
+
+```typescript
+import Imap from "imap";
+
+// Ваши учетные данные из консоли AgentInbox
+const inboxEmail = "myinbox@agentinbox.ru"; // Из Dashboard → Inboxes
+const apiKey = process.env.AGENTINBOX_API_KEY!; // Из Dashboard → API Keys
+
+const imap = new Imap({
+  user: inboxEmail,
+  password: apiKey,
+  host: "imap.agentinbox.ru",
+  port: 993,
+  tls: true, // SSL обязателен
+});
+
+imap.once("ready", () => {
+  imap.openBox("INBOX", false, (err, box) => {
+    if (err) throw err;
+    console.log(`${box.messages.total} сообщений в INBOX`);
+    imap.end();
+  });
+});
+
+imap.once("error", (err: Error) => {
+  console.error("Ошибка IMAP:", err.message);
+});
+
+imap.connect();
+```
+
+## Конфигурация SMTP
+
+Используйте SMTP для отправки писем из входящего ящика AgentInbox.
+
+<Callout>
+  SSL/TLS **требуется** для всех соединений SMTP. Соединения без SSL будут отклонены. Убедитесь, что SSL/TLS включен в настройках почтового клиента.
+</Callout>
+
+| Параметр     | Значение                             |
+| ------------ | ------------------------------------ |
+| **Host**     | `smtp.agentinbox.ru`                 |
+| **Port**     | `465`                                |
+| **Username** | agentinbox                           |
+| **Password** | Ваш API ключ                         |
+| **SSL/TLS**  | **Обязателен** (должен быть включен) |
+
+<Callout>
+  Адрес "От" в вашем письме должен совпадать с адресом электронной почты входящего ящика (например, `myinbox@agentinbox.ru`). Использование другого адреса От может привести к сбоям доставки.
+</Callout>
+
+### Ограничения SMTP
+
+- **Макс. получателей**: 50 на письмо
+- **Макс. размер сообщения**: 10MB
+- **Время ожидания сеанса**: 30 минут
+
+### Пример Python SMTP
+
+```python
+import smtplib
+import os
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Ваши учетные данные из консоли AgentInbox
+inbox_email = "myinbox@agentinbox.ru"  # Из Dashboard → Inboxes
+api_key = os.getenv("AGENTINBOX_API_KEY")  # Из Dashboard → API Keys
+
+# Создайте сообщение
+msg = MIMEMultipart()
+msg["Subject"] = "Hello from AgentInbox"
+msg["From"] = inbox_email  # Используйте электронную почту входящего ящика как адрес От
+msg["To"] = "recipient@example.com"
+msg.attach(MIMEText("This is a test email sent via SMTP.", "plain"))
+
+# Подключитесь с SSL (обязательно) и отправьте
+with smtplib.SMTP_SSL("smtp.agentinbox.ru", 465) as server:
+    server.login(inbox_email, api_key)
+    server.send_message(msg)
+    print("Email sent successfully!")
+```
+
+### Пример TypeScript SMTP
+
+```typescript
+import nodemailer from "nodemailer";
+
+// Ваши учетные данные из консоли AgentInbox
+const inboxEmail = "myinbox@agentinbox.ru"; // Из Dashboard → Inboxes
+const apiKey = process.env.AGENTINBOX_API_KEY!; // Из Dashboard → API Keys
+
+const transporter = nodemailer.createTransport({
+  host: "smtp.agentinbox.ru",
+  port: 465,
+  secure: true, // SSL обязателен
+  auth: {
+    user: inboxEmail,
+    pass: apiKey,
+  },
+});
+
+async function sendEmail() {
+  const info = await transporter.sendMail({
+    from: inboxEmail, // Используйте электронную почту входящего ящика как адрес От
+    to: "recipient@example.com",
+    subject: "Hello from AgentInbox",
+    text: "This is a test email sent via SMTP.",
+  });
+  console.log("Email sent:", info.messageId);
+}
+
+sendEmail().catch(console.error);
+```
+
+## Решение проблем
+
+| Ошибка                  | Причина                    | Решение                                                           |
+| ----------------------- | -------------------------- | ----------------------------------------------------------------- |
+| "Authentication failed" | Неверные учетные данные    | Проверьте электронную почту входящего ящика и API ключ из консоли |
+| "Connection refused"    | SSL не включен             | Включите SSL/TLS в настройках клиента                             |
+| "Connection timeout"    | Брандмауэр блокирует порты | Убедитесь, что порты 993 (IMAP) и 465/587 (SMTP) открыты          |
+| "Sender not authorized" | Неверный адрес От          | Используйте адрес электронной почты входящего ящика как адрес От  |
+| "Folder not found"      | Папка не INBOX             | Поддерживается только INBOX; используйте API для других папок     |
+
+## Когда использовать IMAP/SMTP вместо API
+
+| Вариант использования             | Рекомендация   |
+| --------------------------------- | -------------- |
+| Интеграция почтового клиента      | IMAP/SMTP      |
+| Простая программная отправка      | SMTP           |
+| Полное управление входящим ящиком | API            |
+| Уведомления в реальном времени    | API (Webhooks) |
+| Доступ ко всем папкам             | API            |
+| Массовые операции                 | API            |

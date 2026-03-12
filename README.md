@@ -1,55 +1,55 @@
-# Mintlify Starter Kit
+# AgentInbox Документация
 
-Use the starter kit to get your docs deployed and ready to customize.
+Используй этот стартовый набор для развёртывания документации и начала её кастомизации.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+Нажми зелёную кнопку **Use this template** в верхней части этого репозитория, чтобы скопировать стартовый набор Mintlify. Стартовый набор содержит примеры:
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+- Страницы гайдов
+- Навигацию
+- Кастомизацию
+- API справочные страницы
+- Примеры использования популярных компонентов
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+**[Следуй полному руководству быстрого старта](https://starter.mintlify.com/quickstart)**
 
-## AI-assisted writing
+## Написание с помощью ИИ
 
-Set up your AI coding tool to work with Mintlify:
+Настрой свой AI кодинг инструмент для работы с Mintlify:
 
 ```bash
 npx skills add https://mintlify.com/docs
 ```
 
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
+Эта команда установит Mintlify документационный навык для твоих настроенных AI инструментов, таких как Claude Code, Cursor, Windsurf и других. Навык включает справочник компонентов, стандарты написания и рекомендации по workflow.
 
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+Смотри [гайды для AI инструментов](/ai-tools) для специфичной для инструмента настройки.
 
-## Development
+## Разработка
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
+Установи [Mintlify CLI](https://www.npmjs.com/package/mint) для предпросмотра изменений документации локально. Для установки используй команду:
 
 ```
 npm i -g mint
 ```
 
-Run the following command at the root of your documentation, where your `docs.json` is located:
+Выполни следующую команду в корне документации, где находится твой файл `docs.json`:
 
 ```
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+Смотри локальный предпросмотр на `http://localhost:3000`.
 
-## Publishing changes
+## Публикация изменений
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+Установи GitHub приложение из своей [панели управления](https://dashboard.mintlify.com/settings/organization/github-app) для передачи изменений из репозитория на развёртывание. Изменения развёртываются в production автоматически после push в основную ветку.
 
-## Need help?
+## Нужна помощь?
 
-### Troubleshooting
+### Решение проблем
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+- Если dev окружение не запускается: Выполни `mint update`, чтобы убедиться, что у тебя последняя версия CLI.
+- Если страница загружается как 404: Убедись, что работаешь в папке с валидным `docs.json`.
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+### Ресурсы
+- [Mintlify документация](https://mintlify.com/docs)

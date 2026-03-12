@@ -1,0 +1,711 @@
+---
+title: "Агент интеллектуального помечания электронной почты"
+icon: "tags"
+---
+
+Создайте агента на основе ИИ, который автоматически классифицирует и помечает входящие письма по нескольким измерениям.
+
+## Обзор
+
+Узнайте, как создать агента интеллектуальной классификации электронной почты, который использует ИИ для автоматического анализа и пометки входящих писем. Этот промежуточный пример демонстрирует мощную функцию пометки AgentInbox в сочетании с GPT-4o-mini OpenAI для создания сложной системы автоматизации входящего ящика.
+
+## Что вы будете создавать
+
+К концу этого руководства у вас будет работающий агент интеллектуального помечания, который:
+
+1. **Получает входящие письма** на выделенный входящий ящик AgentInbox
+2. **Анализирует каждое письмо с помощью ИИ** по 4 измерениям:
+   - **Настроение**: положительное, нейтральное или отрицательное
+   - **Категория**: вопрос, жалоба, запрос функции, отчет об ошибке или похвала
+   - **Приоритет**: срочный, высокий, нормальный или низкий
+   - **Отдел**: продажи, поддержка, биллинг или технический
+3. **Автоматически применяет метки** к каждому письму для легкой фильтрации
+4. **Обрабатывает ошибки корректно** с логикой повторных попыток и проверкой
+
+Вот что происходит при поступлении письма:
+
+```
+Письмо: "Ваш продукт упал! Мне нужна помощь СРОЧНО!"
+         ↓
+   Анализ ИИ
+         ↓
+   Применены метки:
+   • negative
+   • complaint
+   • urgent
+   • support
+```
+
+## Предварительные требования
+
+Перед началом убедитесь, что у вас есть:
+
+<Callout>
+  **Необходимо:**
+
+  - Python 3.8 или выше установлен
+  - Учетная запись **AgentInbox** и API ключ
+  - [API ключ OpenAI](https://platform.openai.com/api-keys) (для классификации ИИ)
+  - Учетная запись [ngrok](https://ngrok.com)
+</Callout>
+
+## Настройка проекта
+
+### Шаг 1: создайте каталог проекта
+
+Создайте новый каталог для вашего агента:
+
+```bash
+mkdir smart-labeling-agent
+cd smart-labeling-agent
+```
+
+### Шаг 2: создайте код агента
+
+Создайте файл с именем `agent.py` и вставьте следующий код:
+
+<Accordion title="Нажмите, чтобы просмотреть полный код agent.py">
+  ```python
+    """
+    Агент интеллектуального помечания электронной почты
+  
+    Агент классификации электронной почты на основе ИИ, который автоматически анализирует входящие
+    письма по нескольким измерениям и применяет соответствующие метки.
+    """
+  
+    import os
+    import json
+    import time
+    from dotenv import load_dotenv
+  
+    load_dotenv()
+  
+    from flask import Flask, request, Response
+    import ngrok
+    from agentinbox import AgentInbox
+    from openai import OpenAI
+  
+    # Configuration
+    PORT = int(os.getenv("PORT", "8080"))
+    INBOX_USERNAME = os.getenv("INBOX_USERNAME", "smart-labels")
+    WEBHOOK_DOMAIN = os.getenv("WEBHOOK_DOMAIN")
+  
+    # Initialize
+    app = Flask(__name__)
+    client = AgentInbox()
+    openai_client = OpenAI()
+  
+  
+    def setup_agentinbox():
+        """Create inbox and webhook with idempotency."""
+        # Create inbox
+        try:
+            inbox = client.inboxes.create(
+                username=INBOX_USERNAME,
+                client_id=f"{INBOX_USERNAME}-inbox"
+            )
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                inbox_id = f"{INBOX_USERNAME}@agentinbox.ru"
+                class SimpleInbox:
+                    def __init__(self, inbox_id):
+                        self.inbox_id = inbox_id
+                inbox = SimpleInbox(inbox_id)
+            else:
+                raise
+  
+        # Start ngrok
+        listener = ngrok.forward(PORT, domain=WEBHOOK_DOMAIN, authtoken_from_env=True)
+  
+        # Create webhook
+        try:
+            client.webhooks.create(
+                url=f"{listener.url()}/webhook/agentinbox",
+                event_types=["message.received"],
+                client_id=f"{INBOX_USERNAME}-webhook"
+            )
+        except Exception as e:
+            if "already exists" not in str(e).lower():
+                raise
+  
+        print(f"Ready: {inbox.inbox_id}\n")
+        return inbox, listener
+  
+  
+    def analyze_email(subject, content):
+        """Use AI to classify email across multiple dimensions with retry logic."""
+        valid_values = {
+            "sentiment": {"positive", "neutral", "negative"},
+            "category": {"question", "complaint", "feature-request", "bug-report", "praise"},
+            "priority": {"urgent", "high", "normal", "low"},
+            "department": {"sales", "support", "billing", "technical"}
+        }
+  
+        for attempt in range(1, 4):
+            try:
+                if attempt > 1:
+                    time.sleep(1)
+  
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are an expert email classifier. Analyze emails and return structured classifications."
+                        },
+                        {
+                            "role": "user",
+                            "content": f"""Analyze this email across 4 dimensions:
+  
+                            Subject: {subject}
+                            Content: {content}
+  
+                            Classify into:
+                            1. sentiment: positive | neutral | negative
+                            2. category: question | complaint | feature-request | bug-report | praise
+                            3. priority: urgent | high | normal | low
+                            4. department: sales | support | billing | technical
+  
+                            Consider:
+                            - Sentiment: Overall tone and emotion
+                            - Category: Primary intent of the email
+                            - Priority: Urgency indicators (ASAP, urgent, immediately, deadline mentions, emergency)
+                            - Department: Best team to handle this
+  
+                            Return ONLY valid JSON with these exact keys: sentiment, category, priority, department.
+                            Example: {{"sentiment": "positive", "category": "question", "priority": "normal", "department": "sales"}}
+                            """
+                        }
+                    ],
+                    response_format={"type": "json_object"},
+                    temperature=0.3
+                )
+  
+                # Parse and validate
+                result = json.loads(response.choices[0].message.content)
+  
+                required_keys = ["sentiment", "category", "priority", "department"]
+                missing_keys = [key for key in required_keys if key not in result]
+                if missing_keys:
+                    raise ValueError(f"Missing keys: {missing_keys}")
+  
+                invalid_values = []
+                for dimension, value in result.items():
+                    if dimension in valid_values and value not in valid_values[dimension]:
+                        invalid_values.append(f"{dimension}={value}")
+  
+                if invalid_values:
+                    raise ValueError(f"Invalid values: {', '.join(invalid_values)}")
+  
+                return result
+  
+            except Exception as e:
+                if attempt == 3:
+                    raise Exception(f"AI classification failed: {e}")
+  
+  
+    def apply_labels(inbox_id, message_id, classifications):
+        """Apply labels based on classification results."""
+        labels = [
+            f"{classifications['sentiment']}",
+            f"{classifications['category']}",
+            f"{classifications['priority']}",
+            f"{classifications['department']}"
+        ]
+  
+        # Try batch first
+        try:
+            client.inboxes.messages.update(
+                inbox_id=inbox_id,
+                message_id=message_id,
+                add_labels=labels
+            )
+            for label in labels:
+                print(f"  ✓ {label}")
+            return
+        except Exception:
+            pass
+  
+        # Try individually
+        successful = []
+        for label in labels:
+            try:
+                client.inboxes.messages.update(
+                    inbox_id=inbox_id,
+                    message_id=message_id,
+                    add_labels=[label]
+                )
+                successful.append(label)
+                print(f"  ✓ {label}")
+            except Exception:
+                print(f"  ✗ {label}")
+  
+        if not successful:
+            raise Exception("Failed to apply labels")
+  
+  
+    @app.route('/webhook/agentinbox', methods=['POST'])
+    def receive_webhook():
+        """Webhook endpoint to receive incoming email notifications."""
+        try:
+            payload = request.json
+            event_type = payload.get('type') or payload.get('event_type')
+  
+            # Ignore outgoing messages
+            if event_type == 'message.sent':
+                return Response(status=200)
+  
+            message = payload.get('message', {})
+            message_id = message.get('message_id')
+            inbox_id = message.get('inbox_id')
+            from_field = message.get('from_', '') or message.get('from', '')
+  
+            # Validate required fields
+            if not message_id or not inbox_id or not from_field:
+                return Response(status=200)
+  
+            # Extract sender email
+            if '<' in from_field and '>' in from_field:
+                sender_email = from_field.split('<')[1].split('>')[0].strip()
+            else:
+                sender_email = from_field.strip()
+  
+            subject = message.get('subject', '(no subject)')
+            email_body = message.get('text', '') or message.get('body', '') or message.get('html', '')
+  
+            # Log
+            print(f"\n📧 {sender_email}: {subject}")
+  
+            # Analyze
+            classifications = analyze_email(subject, email_body)
+  
+            print(f"  Sentiment: {classifications['sentiment']}")
+            print(f"  Category: {classifications['category']}")
+            print(f"  Priority: {classifications['priority']}")
+            print(f"  Department: {classifications['department']}")
+  
+            # Apply labels
+            apply_labels(inbox_id, message_id, classifications)
+            print("Done\n")
+  
+        except Exception as e:
+            print(f"Error: {e}\n")
+  
+        return Response(status=200)
+  
+  
+    if __name__ == '__main__':
+        print("АГЕНТ ИНТЕЛЛЕКТУАЛЬНОГО ПОМЕЧАНИЯ ЭЛЕКТРОННОЙ ПОЧТЫ\n")
+        inbox, listener = setup_agentinbox()
+        print("Waiting for emails...\n")
+        app.run(port=PORT)
+  ```
+</Accordion>
+
+### Шаг 3: создайте файл требований
+
+Создайте файл с именем `requirements.txt`:
+
+```txt
+agentinbox
+flask>=3.0.0
+ngrok>=1.0.0
+python-dotenv>=1.0.0
+openai>=1.0.0
+```
+
+### Шаг 4: установите зависимости
+
+Установите требуемые пакеты Python:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Шаг 5: настройте переменные окружения
+
+Создайте файл `.env` со своими учетными данными:
+
+```env
+# Конфигурация AgentInbox
+AGENTINBOX_API_KEY=your_agentinbox_api_key_here
+
+# Конфигурация OpenAI
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Конфигурация Ngrok
+NGROK_AUTHTOKEN=your_ngrok_authtoken_here
+WEBHOOK_DOMAIN=your-domain.ngrok-free.app
+
+# Параметры агента
+INBOX_USERNAME=smart-labels
+PORT=8080
+```
+
+## Разбор кода
+
+Давайте поймем, как работает агент, разбив ключевые компоненты.
+
+### Обзор архитектуры
+
+```
+Письмо прибывает → AgentInbox → Webhook → ngrok → Flask → Анализ ИИ → Применить метки
+```
+
+### 1. Инициализация
+
+```python
+# Загрузите переменные окружения сначала
+load_dotenv()
+
+# Инициализируйте трех клиентов
+app = Flask(__name__)           # Веб-сервер для веб-хуков
+client = AgentInbox()            # SDK AgentInbox
+openai_client = OpenAI()        # OpenAI для классификации ИИ
+```
+
+### 2. Настройка инфраструктуры
+
+Функция `setup_agentinbox()` создает ваш входящий ящик и веб-хук:
+
+```python
+# Создайте входящий ящик с идемпотентностью
+inbox = client.inboxes.create(
+    username=INBOX_USERNAME,
+    client_id=f"{INBOX_USERNAME}-inbox"  # Предотвращает дубликаты
+)
+
+# Запустите туннель ngrok (localhost → открытый URL)
+listener = ngrok.forward(PORT, domain=WEBHOOK_DOMAIN)
+
+# Зарегистрируйте веб-хук с AgentInbox
+client.webhooks.create(
+    url=f"{listener.url()}/webhook/agentinbox",
+    event_types=["message.received"],
+    client_id=f"{INBOX_USERNAME}-webhook"
+)
+```
+
+**`Идемпотентность с client_id:`**
+
+Использование `client_id` гарантирует, что вы можете безопасно перезапустить агента без создания дублирующихся входящих ящиков или веб-хуков. Если ресурс уже существует, AgentInbox возвращает существующий.
+
+### 3. анализ электронной почты на основе ИИ
+
+Функция `analyze_email()` — это ядро агента:
+
+```python
+def analyze_email(subject, content):
+    # Определите допустимые значения классификации
+    valid_values = {
+        "sentiment": {"positive", "neutral", "negative"},
+        "category": {"question", "complaint", "feature-request", ...},
+        "priority": {"urgent", "high", "normal", "low"},
+        "department": {"sales", "support", "billing", "technical"}
+    }
+
+    # Повторите попытку до 3 раз
+    for attempt in range(1, 4):
+        try:
+            # Вызовите API OpenAI
+            response = openai_client.chat.completions.create(...)
+
+            # Разберите JSON ответ
+            result = json.loads(response.choices[0].message.content)
+
+            # Проверьте ключи и значения
+            # ... логика проверки ...
+
+            return result
+        except Exception as e:
+            if attempt == 3:
+                raise
+```
+
+**Ключевые особенности:**
+
+1. **Структурированный подсказ**: четко определяет 4 измерения классификации
+2. **Режим JSON**: заставляет OpenAI возвращать действительный JSON
+3. **Логика повторных попыток**: автоматически повторяет попытку до 3 раз при ошибках
+4. **Строгая проверка**: гарантирует, что классификации соответствуют ожидаемым значениям
+5. **Низкая температура (0,3)**: последовательные, предсказуемые классификации
+
+**Пример подсказа OpenAI:**
+
+```
+Analyze this email across 4 dimensions:
+
+Subject: Product keeps crashing!
+Content: Your software is terrible. Fix it ASAP!
+
+Classify into:
+1. sentiment: positive | neutral | negative
+2. category: question | complaint | feature-request | bug-report | praise
+3. priority: urgent | high | normal | low
+4. department: sales | support | billing | technical
+
+Return ONLY valid JSON...
+```
+
+**Ответ ИИ:**
+
+```json
+{
+  "sentiment": "negative",
+  "category": "complaint",
+  "priority": "urgent",
+  "department": "support"
+}
+```
+
+### 4. применение метак
+
+Функция `apply_labels()` применяет метки с двухуровневой стратегией:
+
+```python
+# Создайте метки из значений классификации
+labels = [
+    "negative",
+    "complaint",
+    "urgent",
+    "support"
+]
+
+# Сначала попробуйте пакетное применение (наиболее эффективно)
+try:
+    client.inboxes.messages.update(
+        inbox_id=inbox_id,
+        message_id=message_id,
+        add_labels=labels  # Применить все сразу
+    )
+    return
+except Exception:
+    pass  # Если пакет не работает, попробуйте по отдельности
+
+# Применяйте метки по одной
+for label in labels:
+    try:
+        client.inboxes.messages.update(
+            inbox_id=inbox_id,
+            message_id=message_id,
+            add_labels=[label]  # По одной
+        )
+    except Exception:
+        pass  # Залогируйте ошибку, но продолжайте
+```
+
+**Зачем два уровня?**
+
+1. **Пакет сначала**: самый быстрый подход (1 вызов API для всех метак)
+2. **Отдельная резервная копия**: если пакет не работает, попробуйте каждую метку отдельно, чтобы сохранить то, что можем
+3. **Отказоустойчивый**: полностью не выйдет из строя, если одна метка имеет проблему
+
+### 5. обработка веб-хуков
+
+Функция `receive_webhook()` организует все:
+
+```python
+@app.route('/webhook/agentinbox', methods=['POST'])
+def receive_webhook():
+    payload = request.json
+
+    # Игнорируйте исходящие сообщения (предотвращает бесконечные циклы)
+    if event_type == 'message.sent':
+        return Response(status=200)
+
+    # Извлеките данные электронной почты
+    message_id = message.get('message_id')
+    inbox_id = message.get('inbox_id')
+    sender_email = extract_email(from_field)
+    subject = message.get('subject')
+    email_body = message.get('text')
+
+    # Классифицируйте с помощью ИИ
+    classifications = analyze_email(subject, email_body)
+
+    # Применить метки
+    apply_labels(inbox_id, message_id, classifications)
+
+    # Всегда возвращайте 200 (говорит AgentInbox, что мы получили)
+    return Response(status=200)
+```
+
+**Зачем всегда возвращать 200?**
+
+Даже если классификация или применение метак не удается, мы возвращаем `200` для сообщения AgentInbox: "я получил этот веб-хук." Если бы мы вернули ошибку (400/500), AgentInbox попытался бы повторно отправить веб-хук, что не помогает при ошибках приложения.
+
+## запуск агента
+
+Запустите агента:
+
+```bash
+python agent.py
+```
+
+Вы должны увидеть результат, похожий на это:
+
+```
+Агент ИНТЕЛЛЕКТУАЛЬНОГО ПОМЕЧАНИЯ ЭЛЕКТРОННОЙ ПОЧТЫ
+
+Ready: smart-labels@agentinbox.ru
+
+Waiting for emails...
+
+ * Running on http://127.0.0.1:8080
+```
+
+<Callout>
+  **Успех!** Ваш агент теперь работает и готов классифицировать письма.
+
+  Оставьте это окно терминала открытым — закрытие его остановит агента.
+</Callout>
+
+## тестирование вашего агента
+
+Давайте протестируем агента с различными типами писем, чтобы увидеть, как он их классифицирует.
+
+### пример 1: срочная жалоба
+
+**Отправьте это письмо:**
+
+```
+На: smart-labels@agentinbox.ru
+Тема: Product crashed - need immediate help!
+Текст: Your product is TERRIBLE! It crashed 3 times today and I lost all my work.
+      I need this fixed IMMEDIATELY or I want a full refund!
+```
+
+**Вывод консоли:**
+
+```
+you@example.com: Product crashed - need immediate help!
+  Sentiment: negative
+  Category: complaint
+  Priority: urgent
+  Department: support
+  ✓ negative
+  ✓ complaint
+  ✓ urgent
+  ✓ support
+Done
+```
+
+**Почему эта классификация?**
+
+- **Настроение**: отрицательное (слова: "terrible", "lost work")
+- **Категория**: жалоба (выражение недовольства)
+- **Приоритет**: срочный (ключевые слова: "IMMEDIATELY", "crashed 3 times")
+- **Отдел**: поддержка (проблема с продуктом)
+
+### пример 2: запрос функции
+
+**Отправьте это письмо:**
+
+```
+На: smart-labels@agentinbox.ru
+Тема: Dark mode would be amazing!
+Текст: Hi! I absolutely love your product. I use it every day.
+      One feature that would make it even better is dark mode support.
+      Keep up the great work!
+```
+
+**Вывод консоли:**
+
+```
+you@example.com: Dark mode would be amazing!
+  Sentiment: positive
+  Category: feature-request
+  Priority: normal
+  Department: technical
+  ✓ positive
+  ✓ feature-request
+  ✓ normal
+  ✓ technical
+Done
+```
+
+**Почему эта классификация?**
+
+- **Настроение**: положительное (слова: "love", "amazing", "great work")
+- **Категория**: запрос функции (предложение новой функциональности)
+- **Приоритет**: нормальный (нет индикаторов срочности)
+- **Отдел**: технический (реализация функции)
+
+## что происходит дальше?
+
+### просмотр в панели управления
+
+Перейдите на ваш входящий ящик AgentInbox и отфильтруйте по меткам для организации ваших писем:
+
+**Фильтр по настроению:**
+
+- Поиск `negative` для просмотра всех недовольных клиентов
+- Поиск `positive` для поиска похвалы и отзывов
+- Поиск `neutral` для просмотра информационных писем
+
+**Фильтр по приоритету, по отделу...**
+
+**Комбинируйте фильтры для мощных запросов:**
+
+- `urgent` + `negative` → критические проблемы клиентов
+- `sales` + `high` → горячие потенциальные клиенты, требующие быстрого ответа
+- `technical` + `bug-report` → очередь разработок инженерии
+
+<Callout>
+  **Pro tip:** вы можете использовать API AgentInbox для программного получения писем по меткам и создания пользовательских рабочих процессов, панелей управления и аналитики.
+</Callout>
+
+## построение на основе меток
+
+Как только ваши письма будут автоматически помечены, вы сможете создавать мощную автоматизацию:
+
+### пример 1: уведомления о приоритете
+
+**Сценарий**: мгновенно предупредите вашу команду при поступлении срочных проблем.
+
+Когда письмо помечено `urgent` + `negative`, автоматически отправьте уведомление Slack на канал поддержки вашей команды. Включите адрес электронной почты отправителя и строку темы, чтобы ваша команда могла немедленно ответить. Это гарантирует, что критические проблемы клиентов никогда не пройдут незамеченными.
+
+### пример 2: эскалация настроения
+
+**Сценарий**: эскалируйте отрицательное настроение для управления.
+
+Отслеживайте все письма, помеченные `negative`, и автоматически уведомляйте менеджеров по успеху клиентов, когда настроение падает. Если один клиент отправляет 3+ отрицательных письма в неделю, инициируйте личное обращение от руководства для проактивного решения их проблем.
+
+### пример 3: маршрутизация отдела
+
+**Сценарий**: автоматически пересылайте письма на соответствующую команду.
+
+Создайте правила, которые автоматически пересылают письма в зависимости от меток отдела:
+
+- `sales` → пересылать на [sales@yourcompany.com](mailto:sales@yourcompany.com)
+- `billing` → создать билет в вашей системе биллинга
+- `technical` → посты в канал #engineering Slack
+- `support` → добавить в очередь поддержки с надлежащим SLA
+
+### пример 4: умный автоответ
+
+**Сценарий**: отправляйте контекстно-зависимые автоматические ответы.
+
+Вместо общих автоответов создавайте ответы на основе классификации:
+
+- `question` → "Спасибо за ваш вопрос! Мы ответим в течение 24 часов."
+- `bug-report` → "Спасибо за отчет. Наша команда инженерии была уведомлена."
+- `complaint` → "Нам жаль это слышать. Старший агент поддержки свяжется с вами в течение 4 часов."
+- `feature-request` → "Отличная идея! Мы добавили это в нашу дорожную карту продукта."
+
+### пример 5: панель управления аналитикой
+
+**Сценарий**: отслеживайте метрики электронной почты и тенденции.
+
+Постройте панель управления, которая запрашивает письма по меткам для анализа:
+
+- **Тренды настроения**: становятся ли клиенты счастливее или более разочарованы?
+- **Объем по отделу**: какая команда обрабатывает больше всего писем?
+- **Время ответа по приоритету**: вы соответствуете SLA для срочных проблем?
+- **Общие категории**: о чем клиенты спрашивают больше всего?
+
+Используйте эти данные для выявления узких мест, улучшения процессов и принятия решений на основе данных о кадровых ресурсах и приоритетах продуктов.
+
+---
+
+Поздравляем! Вы создали систему классификации электронной почты на основе ИИ. Этот агент демонстрирует, как функция пометки AgentInbox может обеспечить сложную автоматизацию входящего ящика и аналитику.

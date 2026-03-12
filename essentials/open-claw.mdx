@@ -1,0 +1,216 @@
+---
+title: "OpenClaw"
+icon: "robot"
+---
+
+Предоставьте вашему агенту Openclaw свой собственный входящий ящик электронной почты
+
+## Начало работы
+
+Openclaw (ранее Moltbot) — это открытый ИИ-персональный помощник, который работает на ваших собственных устройствах и интегрируется с платформами обмена сообщениями, такими как WhatsApp, Telegram, Discord и Slack. Добавив AgentInbox в Openclaw, ваш агент получает возможность отправлять и получать письма, обеспечивая двусторонние email-беседы рядом с вашими существующими каналами чата.
+
+Есть два способа интегрировать AgentInbox с Openclaw: используя официальный навык AgentInbox или создав пользовательский навык.
+
+## Вариант 1: официальный навык AgentInbox (рекомендуется)
+
+Самый простой способ добавить возможности электронной почты в Openclaw — установить официальный навык AgentInbox со страницы со skill (скоро). Этот навык поддерживается командой AgentInbox и предоставляет комплексную функциональность электронной почты.
+
+### Установка
+
+Установите навык, используя CLI Openclaw:
+
+```bash
+openclaw skills install agentinbox-to/agentinbox-skills/agentinbox
+```
+
+Или установите через ClawHub:
+
+```bash
+npx clawhub@latest install agentinbox
+```
+
+### Конфигурация
+
+Добавьте ваш API ключ AgentInbox в конфигурацию навыка в `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "skills": {
+    "entries": {
+      "agentinbox": {
+        "enabled": true,
+        "env": {
+          "AGENTINBOX_API_KEY": "your-api-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+Получите ваш API ключ из консоли AgentInbox.
+
+### Возможности
+
+Официальный навык включает:
+
+- **Управление входящими ящиками:** создание масштабируемых входящих ящиков по требованию с уникальными адресами электронной почты
+- **Операции с сообщениями:** отправка писем с текстовым и HTML-содержимым для лучшей доставляемости
+- **Управление цепями:** группировка связанных сообщений в беседы
+- **Вложения:** отправка и получение вложений с кодированием Base64
+- **Черновики:** создание черновиков для одобрения человеком перед отправкой
+- **Поды:** мультитенантная изоляция для SaaS-платформ
+- **Идемпотентность:** безопасные повторные попытки при операциях создания
+- **События в реальном времени:** поддержка WebSocket и веб-хуков для уведомлений
+
+### Проверка установки
+
+Проверьте, что навык загружен:
+
+```bash
+openclaw skills list --eligible
+```
+
+Вы должны увидеть `agentinbox` в списке доступных навыков.
+
+## Вариант 2: пользовательский навык
+
+Для большего контроля над интеграцией вы можете создать пользовательский навык AgentInbox. Навыки — это каталоги, содержащие файл `SKILL.md` с инструкциями для Openclaw.
+
+### Создание каталога навыка
+
+Создайте новый навык в рабочем пространстве Openclaw:
+
+```bash
+mkdir -p ~/.openclaw/skills/agentinbox
+```
+
+### Создание файла навыка
+
+Создайте `~/.openclaw/skills/agentinbox/SKILL.md` со следующим содержимым:
+
+````markdown
+---
+name: agentinbox
+description: Отправка и получение писем с помощью AgentInbox
+requires:
+  env:
+    - AGENTINBOX_API_KEY
+---
+
+# Навык AgentInbox
+
+Вы можете отправлять и получать письма, используя API AgentInbox. Используйте инструмент `exec` для выполнения команд curl к API AgentInbox.
+
+## Базовый URL API
+```
+https://api.agentinbox.to/v0
+```
+
+## Аутентификация
+
+Включите ваш API ключ в заголовок Authorization:
+```
+Authorization: Bearer $AGENTINBOX_API_KEY
+```
+
+## Распространенные операции
+
+### Перечисление входящих ящиков
+```bash
+curl -s -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  https://api.agentinbox.to/v0/inboxes
+```
+
+### Создание входящего ящика
+```bash
+curl -s -X POST -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"display_name": "My Agent"}' \
+  https://api.agentinbox.to/v0/inboxes
+```
+
+### Отправка письма
+```bash
+curl -s -X POST -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": ["recipient@example.com"],
+    "subject": "Hello from Openclaw",
+    "text": "This email was sent by my AI assistant."
+  }' \
+  https://api.agentinbox.to/v0/inboxes/{inbox_id}/messages
+```
+
+### Перечисление сообщений во входящем ящике
+```bash
+curl -s -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  https://api.agentinbox.to/v0/inboxes/{inbox_id}/messages
+```
+
+### Ответ на сообщение
+```bash
+curl -s -X POST -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Thanks for your email!"}' \
+  https://api.agentinbox.to/v0/inboxes/{inbox_id}/messages/{message_id}/reply
+```
+````
+
+### Конфигурация навыка
+
+Добавьте ваш API ключ AgentInbox в конфигурацию навыка в `~/.openclaw/openclaw.json`:
+
+```json
+{
+  "skills": {
+    "entries": {
+      "agentinbox": {
+        "enabled": true,
+        "env": {
+          "AGENTINBOX_API_KEY": "your-api-key-here"
+        }
+      }
+    }
+  }
+}
+```
+
+### Проверка навыка
+
+Проверьте, что навык загружен:
+
+```bash
+openclaw skills list --eligible
+```
+
+Вы должны увидеть `agentinbox` в списке доступных навыков.
+
+## Примеры вариантов использования
+
+Как только AgentInbox интегрирован с Openclaw, вы можете попросить вашего агента:
+
+- "Создай новый входящий ящик электронной почты для моего проекта"
+- "Проверь мой входящий ящик на новые письма"
+- "Отправь письмо на [john@example.com](mailto:john@example.com) о встрече завтра"
+- "Ответь на последнее письмо от Сары"
+- "Переслать письмо с счетом-фактурой на [accounting@company.com](mailto:accounting@company.com)"
+
+## Уведомления по электронной почте в реальном времени
+
+Для проактивной обработки электронной почты вы можете объединить веб-хуки AgentInbox с поддержкой веб-хуков Openclaw. Это позволяет Openclaw уведомить вас немедленно при поступлении новых писем.
+
+1. Настройте конечную точку веб-хука в Openclaw (см. [документацию веб-хуков Openclaw](https://docs.openclaw.ai/automation/webhook))
+2. Зарегистрируйте веб-хук с помощью AgentInbox:
+
+```bash
+curl -X POST -H "Authorization: Bearer $AGENTINBOX_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-openclaw-webhook-url",
+    "events": ["message.received"]
+  }' \
+  https://api.agentinbox.to/v0/webhooks
+```
+
+Теперь Openclaw будет получать уведомления всякий раз, когда приходит новое письмо, позволяя ему проактивно информировать вас или предпринимать меры.

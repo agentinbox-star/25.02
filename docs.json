@@ -1,63 +1,146 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Agent Inbox",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#000000",
+    "light": "#93989e",
+    "dark": "#000000"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/images/unnamed.jpg",
   "navigation": {
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Agent Inbox",
+          "icon": "envelope",
+          "color": {
+            "light": "#000000",
+            "dark": "#000000"
+          },
+          "href": "https://patternautomation.com"
+        },
+        {
+          "anchor": "NeuroAI",
+          "icon": "rocket-launch",
+          "color": {
+            "light": "#000000",
+            "dark": "#000000"
+          },
+          "href": "https://neuro-agent.ru"
+        }
+      ]
+    },
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Документация",
+        "icon": "book",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Начало работы",
             "pages": [
+              "privetstvuem",
               "index",
-              "quickstart",
-              "development"
+              "quickstart"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Основной концепт",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "pochtovye-yaschiki",
+              "untitled-page",
+              "tsepochki-pisem-odin-dialog",
+              "chernovik",
+              "tegi",
+              "pody"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Интеграции",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "essentials/navyki",
+              "essentials/mcp",
+              "essentials/open-claw"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Инструкции",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "essentials/v",
+              "essentials/l",
+              {
+                "group": "Домен",
+                "icon": "globe",
+                "pages": [
+                  "ispolzovanie-polzovatelskikh-domenov",
+                  "domain-controll"
+                ]
+              },
+              "essentials/nnt"
+            ]
+          },
+          {
+            "group": "Вебхуки  (Webhooks)",
+            "pages": [
+              "obzor",
+              "sobytiya-veb-khukov",
+              "rukovodstvo-po-nastroyke-veb-khukov",
+              "proverka-veb-khukov"
+            ]
+          },
+          {
+            "group": "Вебсокеты (WebSockets)",
+            "pages": [
+              "web-sockets",
+              "web-sockets-bystriy-start"
+            ]
+          },
+          {
+            "group": "Лучшие практики",
+            "pages": [
+              "dostavlyaemost-elektronnoy-pochty"
+            ]
+          },
+          {
+            "group": "Примеры",
+            "pages": [
+              "upravlyaemiy-sobytiyami-agent",
+              "agent-avtootvetchika-na-elektronnye-pisma",
+              "agent-intellektualnogo-pomechaniya-elektronnoy-pochty",
+              "agenta-prodazh-na-osnove-ii",
+              "deystvuyuschie-agenty-elektronnoy-pochty"
+            ]
+          },
+          {
+            "group": "Ресурсы",
+            "pages": [
+              "chasto-zadavaemye-voprosy-faq",
+              "izvlechenie-otvetov-po-elektronnoy-pochtes-pomoschyu-talon",
+              "risoedinyaytes-k-soobschestvu-agent-inbox",
+              "podderzhka",
+              {
+                "group": "Безопасность и Приватность",
+                "pages": [
+                  "ponimanie-autentifikatsii-elektronnoy-pochty-spf-dkim-dmarc",
+                  "sootvetstvie-soc-2",
+                  "obnaruzhenie-spama-i-virusov"
+                ]
+              }
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API справочник",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "API документация",
             "pages": [
               "api-reference/introduction"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Примеры endpoints",
             "pages": [
               "api-reference/endpoint/get",
               "api-reference/endpoint/create",
@@ -67,37 +150,20 @@
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    ]
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
+  "logo": "/images/unnamed.jpg",
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Поддержка",
+        "href": "mailto:info@patternautomation.com"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Панель управления",
+      "href": "https://app.agentinbox.com"
     }
   },
   "contextual": {
@@ -112,11 +178,8 @@
      "vscode"
    ]
   },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+  "description": "платформа API для предоставления ИИ-агентам собственных входящих ящиков",
+  "banner": {
+    "dismissible": true
   }
 }

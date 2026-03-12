@@ -1,97 +1,102 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Введение"
+description: "Предоставьте ИИ-агентам почтовые ящики "
+icon: "bookmark"
 ---
 
-## Setting up
+## Что такое Agent Inbox?
 
-Get your documentation site up and running in minutes.
+Agent Inbox — это платформа API для предоставления ИИ-агентам собственных входящих ящиков, позволяющая им отправлять, получать и обрабатывать электронные письма. Мы управляем инфраструктурой, чтобы вы могли сосредоточиться на создании почтовых агентов.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+**Агенты электронной почты могут**:
 
-## Make it yours
+- Вести беседы с пользователями в своих входящих ящиках
+- Автоматизировать рабочие процессы на основе электронной почты для предприятий
+- Аутентифицироваться с приложениями третьих сторон
+- Действовать как полноценные пользователи в интернете
 
-Design a docs site that looks great and empowers your users.
+## Проблема с традиционной электронной почтой
 
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+Существующая инфраструктура электронной почты была создана для людей. Устаревшие поставщики, такие как Gmail и Outlook, имеют несколько ограничений для агентских случаев использования:
+
+<CardGroup>
+  <Card icon="code" title="Нет API для входящих ящиков">
+    Устаревшие поставщики не поддерживают API для создания новых входящих ящиков по требованию.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card icon="money-bill-1" title="Цена за входящий ящик">
+    Они взимают ежемесячную подписку за входящий ящик (\$12/ящик/месяц !!), что дорого для агентов.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card icon="light-emergency" title="Ограничительные лимиты">
+    Они устанавливают ограничивающие лимиты скорости и отправки, не подходящие для автоматизации.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card icon="comment-exclamation" title="Плохой DX">
+    В целом, они предлагают плохой опыт разработчика для создания на основе электронной почты. Gmail API отстой!
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Решение
 
-Everything you need to create world-class documentation.
+AgentInbox — это поставщик электронной почты, ориентированный на API и разработанный для агентов. Думайте о нем как о Gmail, но с:
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+<Steps>
+  <Step title="API-First инфраструктура">
+    <Callout icon="laptop">
+      **Программируемые входящие ящики**: Создавайте и управляйте входящими ящиками через API.
+    </Callout>
+    <Callout icon="money-bill-1-wave">
+      **Ценообразование на основе использования**: Платите только за то, что вы используете.
+    </Callout>
+    <Callout icon="unlock">
+      **Готовность к высокому объему**: Без ограничивающих лимитов скорости или отправки.
+    </Callout>
+    <Callout icon="alarm-clock">
+      **События в реальном времени**: Получайте уведомления мгновенно с помощью вебхуков и вебсокетов.
+    </Callout>
+    <Callout icon="key">
+      **Простая аутентификация**: Используйте API ключи, без сложных потоков OAuth.
+    </Callout>
+  </Step>
+  <Step title="Функции, ориентированные на ИИ">
+    <Callout icon="shield">
+      **Встроенная безопасность**: Используйте разрешения API и ограничения агентов для контроля доступа.
+    </Callout>
+    <Callout icon="location-arrow">
+      **Семантический поиск**: Ищите по всем входящим ящикам в вашей организации по смыслу.
+    </Callout>
+    <Callout icon="tag">
+      **Автоматическое присвоение меток**: Автоматически категоризируйте письма с использованием определяемых пользователем подсказок.
+    </Callout>
+    <Callout icon="file-invoice-dollar">
+      **Извлечение структурированных данных**: Извлекайте структурированные данные из неструктурированных писем.
+    </Callout>
+    <Callout icon="ellipsis">
+      **И многое другое в разработке...**
+    </Callout>
+  </Step>
+</Steps>
 
-## Need inspiration?
+Наши клиенты используют AgentInbox для идентификации агентов, аутентификации и коммуникации. Чтобы начать, создайте учетную запись на нашей консоли и напишите нам на [info@patternautomation.com](mailto:info@patternautomation.com), если у вас возникнут какие-либо проблемы.
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/1V7BISeFUTM?si=4asiGnuV4O81nu5B" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen />
+
+## Начало работы
+
+<CardGroup>
+  <Card icon="stars" href="/quickstart" title="Быстрый старт">
+    
+  </Card>
+  <Card icon="key" href="/api-reference" title="Справочник API">
+    
+  </Card>
+</CardGroup>
+
+## Поддержка
+
+<CardGroup>
+  <Card icon="message" href="https://discord.gg/hTYatWYWBc" title="Telegram">
+    
+  </Card>
+  <Card icon="pen" href="mailto:support@agentmail.cc" title="Электронная почта">
+    
+  </Card>
+</CardGroup>

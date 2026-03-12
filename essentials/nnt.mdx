@@ -1,0 +1,131 @@
+---
+title: "Интеграция LiveKit Agents"
+icon: "phone"
+---
+
+Создайте голосового помощника с возможностями электронной почты в реальном времени.
+
+## Обзор
+
+Это руководство проведет вас через создание голосового помощника с возможностями электронной почты в реальном времени. Мы используем SDK LiveKit Agents для построения функциональности голоса.
+
+## Предварительные требования
+
+Следуйте [быстрому старту голосового ИИ LiveKit](https://docs.livekit.io/agents/start/voice-ai/) для создания простого голосового помощника. В этом руководстве мы расширим функциональность этого помощника для электронной почты.
+
+У вас должен быть файл с именем `agent.py`, который мы будем изменять.
+
+## Установка
+
+Установите пакеты Python
+
+```shell
+pip install agentinbox agentinbox-toolkit
+```
+
+Установите переменные окружения
+
+```env
+AGENTINBOX_API_KEY=<Your AgentInbox API key>
+AGENTINBOX_USERNAME=<Choose a username for your agent's inbox>
+```
+
+## Код
+
+В файл `agent.py` добавьте следующие импорты
+
+```python
+import os
+import asyncio
+
+from agentinbox import AgentInbox, AsyncAgentInbox, Subscribe, MessageReceivedEvent
+from agentinbox_toolkit.livekit import AgentInboxToolkit
+```
+
+Затем добавьте класс `EmailAssistant`
+
+```python
+class EmailAssistant(Agent):
+    inbox_id: str
+    ws_task: asyncio.Task | None = None
+
+    def __init__(self) -> None:
+        client = AgentInbox()
+
+        # Устанавливая client_id, входящий ящик создается только один раз.
+        username = os.getenv("AGENTINBOX_USERNAME")
+        inbox = client.inboxes.create(username=username, client_id=f"{username}-inbox")
+
+        self.inbox_id = inbox.inbox_id
+
+        super().__init__(
+            instructions=f"""
+            Вы полезный голосовой и email ИИ-ассистент. Ваше имя AgentInbox. Вы можете получать письма на {self.inbox_id}. Вы также можете отправлять и отвечать на письма.
+            При использовании инструментов электронной почты используйте "{self.inbox_id}" в качестве параметра inbox_id. При написании писем включайте "AgentInbox" в подпись.
+            Всегда говорите на английском языке.
+            ВАЖНО: {self.inbox_id} — это ваш входящий ящик, а не входящий ящик пользователя.
+            """,
+            # AgentInbox Toolkit имеет готовые инструменты для агентов LiveKit.
+            tools=AgentInboxToolkit(client=client).get_tools(
+                [
+                    "list_threads",
+                    "get_thread",
+                    "get_attachment",
+                    "send_message",
+                    "reply_to_message",
+                ]
+            ),
+        )
+
+    async def _websocket_task(self):
+        # Откройте соединение websocket с AgentInbox.
+        async with AsyncAgentInbox().websockets.connect() as socket:
+            # Подпишитесь на события из входящего ящика.
+            await socket.send_subscribe(Subscribe(inbox_ids=[self.inbox_id]))
+
+            while True:
+                data = await socket.recv()
+
+                # Если входящий ящик получает сообщение, прерывайте текущую беседу и генерируйте ответ.
+                if isinstance(data, MessageReceived):
+                    self.session.interrupt()
+
+                    await self.session.generate_reply(
+                        instructions=f"""Скажите "Я получил письмо" и затем прочитайте письмо.""",
+                        user_input=data.message.model_dump_json(),
+                    )
+
+    # Откройте соединение websocket и сгенерируйте приветствие, когда агент входит в вызов.
+    async def on_enter(self):
+        self.ws_task = asyncio.create_task(self._websocket_task())
+
+        await self.session.generate_reply(
+            instructions=f"""На английском языке поприветствуйте пользователя, представьтесь как AgentInbox, сообщите им, что вы можете "получать письма" на {self.inbox_id}, и предложите свою помощь.""",
+            allow_interruptions=False,
+        )
+
+    # Закройте соединение websocket, когда агент выходит из вызова.
+    async def on_exit(self):
+        if self.ws_task:
+            self.ws_task.cancel()
+```
+
+Наконец, обновите функцию `entrypoint`
+
+```python
+await session.start(
+    room=ctx.room,
+    agent=EmailAssistant(),  # Замените Assistant на EmailAssistant.
+    room_input_options=RoomInputOptions(
+        noise_cancellation=noise_cancellation.BVC()
+    ),
+)
+```
+
+## Все готово
+
+Запустите вашего агента в терминале и отправьте ему письмо
+
+```shell
+python agent.py console
+```

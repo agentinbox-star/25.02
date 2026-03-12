@@ -1,0 +1,490 @@
+---
+title: "Извлечение ответов по электронной почте с помощью Talon  "
+icon: "file-pen"
+---
+
+Узнайте, как использовать Talon для извлечения нового содержимого из ответов по электронной почте, удаляя цитируемый текст с точностью 93,8%.
+
+## Почему Talon?
+
+Цепочки писем накапливают цитируемые ответы, которые засоряют фактическое содержимое. При программной обработке писем вам нужно только новое сообщение, а не вся история беседы.
+
+**Talon решает эту проблему** путем извлечения чистого содержимого ответа через сложное сопоставление паттернов и структурный анализ.
+
+### Варианты использования
+
+- **AI агенты электронной почты**: извлеките новые сообщения пользователя без обработки всей истории цепочки
+- **Автоматизация электронной почты**: разберите ответы для выявления действенного содержимого
+- **Анализ цепочки**: создавайте потоки беседы путем изоляции отдельных вкладов
+- **Управление входящим ящиком**: обрабатывайте только новую информацию из ответов
+
+### Почему выбрать Talon?
+
+<CardGroup cols={2}>
+  <Card icon="code" title="Поддержка HTML электронной почты">
+    Обрабатывает HTML структуры Gmail, Outlook, Apple Mail, Thunderbird
+  </Card>
+  <Card icon="golf-flag-hole" title="Высокая точность">
+    Успешность 93,8% на 64 реальных тестовых случаях
+  </Card>
+  <Card icon="align-justify" title="Многоязычность">
+    Поддерживает английский, японский, шведский, польский, голландский, немецкий языки
+  </Card>
+  <Card icon="arrow-right-long-to-line" title="Быстрая производительность">
+    Среднее время обработки 1,92 мс, 488 писем/сек
+  </Card>
+</CardGroup>
+
+---
+
+## Как работает Talon
+
+Talon использует два дополняющих друг друга подхода в зависимости от формата письма:
+
+### Обработка простого текста (6-этапный конвейер)
+
+1. **Классификация строк**: назначает маркеры каждой строке ('t'=текст, 'm'=маркер цитирования, 's'=разделитель, 'e'=пусто)
+2. **Сопоставление паттернов**: применяет regex к последовательностям маркеров для выявления цитируемых блоков
+3. **Извлечение содержимого**: удаляет цитируемые строки и возвращает чистый текст
+
+Распознает паттерны типа:
+
+- Стандартные маркеры цитирования (`>`)
+- Заголовки ответов ("On [date] [name] wrote:")
+- Индикаторы переадресации ("-----Original Message-----")
+
+### Обработка HTML (8-этапный конвейер)
+
+1. **Удаление структуры**: непосредственно удаляет известные элементы цитирования (div Gmail, blockquotes, разметка Outlook)
+2. **Резервная точка контроля**: для нестандартного HTML, сопоставляет элементы текстовым строкам, применяет текстовые паттерны, удаляет соответствующий HTML
+
+### Системы обработки
+
+**Удаление цитирования** (первичное)
+
+- Удаляет цитируемые ответы из цепочки
+- Не требует инициализации
+- Сопоставление паттернов на основе правил
+
+---
+
+## Начало работы
+
+<Steps>
+  <Step title="Установите Talon">
+    Установите через pip с требуемым обходным решением для Python 3.11+:
+
+    `pip install talon`
+  </Step>
+  <Step title="Примените обходное решение для Python 3.11+">
+    `Требуемое исправление для зависимости cchardet:`
+
+    `# Import workaround BEFORE importing talon`
+
+    `import sys`
+
+    `import chardet`
+
+    `sys.modules['cchardet'] = chardet`
+
+    `# Now safe to import talon`
+
+    `import talon`
+
+    `from talon import quotations`
+
+    <Callout>
+      Это обходное решение **необходимо** для Python 3.11+.
+    </Callout>
+  </Step>
+  <Step title="Извлеките содержимое ответа">
+    Базовое использование для простого текста и HTML:
+
+    `from talon import quotations`
+
+    `email = """Great work on the project!`
+
+    `On Mon, Apr 11, 2011 at 6:54 PM, Bob wrote:`
+
+    `> Can you review the document?`
+
+    `> Need feedback by Friday.`
+
+    `"""`
+
+    `clean_reply = quotations.extract_from_plain(email)`
+
+    `# Result: "Great work on the project!"`
+  </Step>
+</Steps>
+
+---
+
+## Производительность и точность
+
+Talon был протестирован на 64 реальных письмах от различных клиентов и языков.
+
+### Итоговые результаты тестирования
+
+| Метрика                    | Значение           |
+| -------------------------- | ------------------ |
+| **Всего тестов**           | 64 письма          |
+| **Прошли**                 | 60 (93,8%)         |
+| **Не прошли**              | 4 (6,2%)           |
+| **Ср. время обработки**    | 1,92 мс            |
+| **Пропускная способность** | 488,6 писем/сек    |
+| **Мин/макс время**         | 0,13 мс - 21,55 мс |
+
+### Охват тестирования
+
+- **22 HTML письма**: Gmail, Outlook, Apple Mail, Thunderbird, Mail.ru, Hotmail
+- **42 письма в простом тексте**: различные форматы и стили ответов
+- **6+ языков**: английский, японский, шведский, польский, голландский, немецкий
+- **Мобильные клиенты**: iPhone, Android "Sent from" подписи
+
+### Время обработки по сложности
+
+| Тип письма              | Ср. время  | Сложность |
+| ----------------------- | ---------- | --------- |
+| Простой текстовый ответ | 0,2-0,5 мс | Низкая    |
+| HTML Gmail/Outlook      | 2-4 мс     | Средняя   |
+| Сложные цепочки         | 4-22 мс    | Высокая   |
+
+### Компромисс скорость vs точность
+
+| Библиотека   | Ср. время обработки | Точность | Лучше всего для                                    |
+| ------------ | ------------------- | -------- | -------------------------------------------------- |
+| **Talon**    | 1,92 мс             | 93,8%    | Производственные системы, требующие поддержку HTML |
+| qutoequail   | 0,96 мс             | ~85%     | Требования умеренной точности                      |
+| Custom regex | 0,1 мс              | ~70%     | Простой простой текст, критична скорость           |
+
+**Идея**: для производственных систем средний результат 1,92 мс незначителен. Даже в худшем случае (21,55 мс) Talon быстрее большинства сетевых запросов.
+
+---
+
+## Известные ограничения
+
+Talon не прошел 4 из 64 тестовых случаев. Вот что не сработало:
+
+<AccordionGroup>
+  <Accordion title="Неудачные тестовые случаи (всего 4)">
+    ### Тестовый случай 1: сложная цепочка писем со смешанным содержимым
+
+    **Ввод**:
+
+    ```text
+        Thank you, Sonya Johnson.
+    
+        I have sent an invite for 10:30am Monday PDT (today). I
+        hope you can join.
+    
+        Regards,
+    
+        Christopher Edwards
+    
+    
+        On Mon, Jun 3, 2024 at 12:53 AM Cody Hart <omerritt@example.com> wrote:
+    
+        > Hi Christopher Edwards,
+        >
+        > 10.30 AM pacific is good for me.
+        >
+        > Thanks & Regards,
+        >
+        > Cody Hart
+    ```
+
+    **Ожидаемый результат**: только первые 5 строк (до `Christopher Edwards`)
+
+    **Результат Talon**: возвращает все письмо, включая цитируемый текст, начинающийся с "On Mon, Jun 3..." и весь "\> цитируемый текст"
+
+    **Время обработки**: 2,55 мс
+
+    **Проблема**: размещение подписи перед цитатами запутывает логику обнаружения
+
+    ---
+
+    ### Тестовый случай 2: встроенные ответы
+
+    **Ввод**:
+
+    ```text
+        On Tue, Apr 29, 2014 at 4:22 PM, Example Dev <sugar@example.com> wrote:
+    
+        > okay. Well, here's some stuff I can write.
+        >
+        > And if I write a 2 second line you and maybe reply under this?
+        >
+        > Or if you didn't really feel like it, you could reply under this line.
+    
+        I will reply under this one
+    
+        >
+        > okay?
+        >
+    
+        and under this.
+    
+        >
+        > -- Tim
+    ```
+
+    **Ожидаемый результат**: только встроенные ответы (`I will reply under this one` и `and under this.`)
+
+    **Результат Talon**: возвращает все, включая заголовок "On Tue, Apr 29..." и все цитируемые строки
+
+    **Время обработки**: 0,48 мс
+
+    **Проблема**: перемешанные встроенные ответы не распознаны как паттерн ответа
+
+    ---
+
+    ### Тестовый случай 3: Gmail Forward HTML
+
+    **Ввод**:
+
+    ```html
+        <html><head></head><body><div dir="ltr">test<div><br /></div><div>blah</div>
+        <div><br /><div class="gmail_quote">---------- Forwarded message ----------<br />
+        From: <b class="gmail_sendername">Foo Bar</b>
+        <span dir="ltr">&lt;<a href="mailto:foo@bar.example">foo@bar.example</a>&gt;</span><br />
+        Date: Thu, Mar 24, 2016 at 5:17 PM<br />
+        Subject: The Subject<br />
+        To: John Doe &lt;<a href="mailto:john@doe.example">john@doe.example</a>&gt;<br />
+        <br /><br /><div dir="ltr">Some text<div><br /></div><div><br /></div></div>
+        </div><br /></div></div></body></html>
+    ```
+
+    **Ожидаемый результат**: только `testblah` (до маркера переадресации)
+
+    **Результат Talon**: включает "---------- Forwarded message ----------" и переадресованное содержимое
+
+    **Время обработки**: 3,41 мс
+
+    **Проблема**: заголовки HTML переадресации не удаляются при обнаружении цитирования Gmail
+
+    ---
+
+    ### Тестовый случай 4: Thunderbird Forward HTML
+
+    **Ввод**:
+
+    ```html
+        <html><body bgcolor="#FFFFFF" text="#000000">
+        <p><br /></p>
+        <div class="moz-forward-container"><br /><br />
+        -------- Forwarded Message --------
+        <table class="moz-email-headers-table">
+          <tbody>
+            <tr><th>Subject:</th><td>Re: Example subject</td></tr>
+            <tr><th>Date:</th><td>Tue, 3 May 2016 14:54:27 +0200 (CEST)</td></tr>
+            <tr><th>From:</th><td>John Doe &lt;johndoe@example.com&gt;</td></tr>
+          </tbody>
+        </table>
+        <br /><br />
+        <div>Dear John,</div>
+        <div><br /></div>
+        <div>This is a test.</div>
+        </div></body></html>
+    ```
+
+    **Ожидаемый результат**: пусто (нет нового содержимого, только переадресация)
+
+    **Результат Talon**: включает "-------- Forwarded Message --------" и переадресованное содержимое
+
+    **Время обработки**: 4,34 мс
+
+    **Проблема**: класс Thunderbird `moz-forward-container` не признан
+
+    ---
+
+    **Итого**: 3 из 4 неудач — это переадресованные сообщения. Обычные ответы работают с точностью 98%+.
+  </Accordion>
+  <Accordion title="Примеры успеха">
+    ### Пример 1: простой ответ Gmail
+
+    **Ввод**:
+
+    ```text
+        Awesome! I haven't had another problem with it.
+    
+        On Aug 22, 2011, at 7:37 PM, defunkt<reply@reply.github.com> wrote:
+    
+    
+    
+    
+        > Loader seems to be working well.
+    ```
+
+    **Результат Talon**: `Awesome! I haven't had another problem with it.`
+
+    **Время обработки**: 0,2 мс
+
+    **Что сработало**: обнаружен стандартный паттерн "On [date] [name] wrote:", распознан маркер цитирования (\>)
+
+    ---
+
+    ### Пример 2: ответ Outlook с разделителем
+
+    **Ввод**:
+
+    ```text
+        Outlook with a reply directly above line
+        ________________________________________
+        From: CRM Comments [crm-comment@example.com]
+        Sent: Friday, 23 March 2012 5:08 p.m.
+        To: John S. Greene
+        Subject: [contact:106] John Greene
+    
+        A new comment has been added to the Contact named 'John Greene':
+    
+        I am replying to a comment.
+    ```
+
+    **Результат Talon**: `Outlook with a reply directly above line`
+
+    **Время обработки**: 0,51 мс
+
+    **Что сработало**: строка разделителя Outlook (подчеркивания) и заголовки "From:"/"Sent:" обнаружены как разделитель
+
+    ---
+
+    ### Пример 3: HTML ответ Outlook
+
+    **Ввод**:
+
+    ```html
+        <html>
+          <body>
+            <div>Reply</div>
+            <span id="OLK_SRC_BODY_SECTION">
+              <div>
+                <span>From: </span>Bob &lt;<a href="mailto:bob@example.com">bob@example.com</a>&gt;<br />
+                <span>Date: </span>Tue, 01 Nov 2011 18:54:39 -0700<br />
+                <span>To: </span>Rob &lt;<a href="mailto:rob@example.com">rob@example.com</a>&gt;<br />
+                <span>Subject: </span>Test<br />
+              </div>
+              <div>Hi</div>
+            </span>
+          </body>
+        </html>
+    ```
+
+    **Результат Talon**: `Reply`
+
+    **Время обработки**: 4,02 мс
+
+    **Что сработало**: ID span Outlook `OLK_SRC_BODY_SECTION` обнаружен и удален структурно
+  </Accordion>
+  <Accordion title="Производительность vs более простые альтернативы">
+    **Компромисс**: Talon более всеобъемлющий, но медленнее, чем библиотеки только для простого текста
+
+    - Talon: среднее 1,92 мс (с поддержкой HTML)
+    - email-reply-parser: среднее 0,03 мс (только простой текст)
+
+    Для производственных систем среднее значение 1,92 мс незначительно. Даже в худшем случае (21,55 мс) Talon быстрее большинства сетевых запросов.
+  </Accordion>
+  <Accordion title="Переадресованные сообщения">
+    Как показано в результатах тестирования, переадресованные сообщения (особенно HTML) являются сложными:
+
+    - Переадресации простого текста: обычно работают хорошо
+    - HTML переадресации: могут сохранять заголовки переадресации
+    - Обходное решение: используйте извлечение простого текста или постобработку для удаления маркеров переадресации
+  </Accordion>
+</AccordionGroup>
+
+---
+
+### Обработка ошибок
+
+Всегда обрабатывайте потенциальные ошибки разбора:
+
+```python
+from talon import quotations
+
+def safe_extract(email_body, is_html=False):
+    try:
+        if is_html:
+            return quotations.extract_from_html(email_body)
+        else:
+            return quotations.extract_from_plain(email_body)
+    except Exception as e:
+        # Резервный вариант к исходному сообщению в случае ошибки извлечения
+        print(f"Talon extraction failed: {e}")
+        return email_body
+```
+
+### Рекомендации тестирования
+
+Всегда тестируйте со своими конкретными форматами писем:
+
+```python
+# Создайте набор тестов со своими фактическими паттернами писем (Gmail, Outlook, Apple Mail)
+test_emails = [
+    "path/to/gmail_reply.html",
+    "path/to/outlook_reply.txt",
+    "path/to/forward.html"
+]
+
+for email_file in test_emails:
+    with open(email_file) as f:
+        content = f.read()
+        result = quotations.extract_from(content)
+        print(f"{email_file}: {len(result)} chars extracted")
+```
+
+<Tip>
+  Тестируйте с реальными письмами от фактических почтовых клиентов ваших пользователей. Точность Talon основана на разнообразных реальных образцах, но ваш конкретный вариант использования может иметь уникальные паттерны.
+</Tip>
+
+---
+
+## Версия JavaScript
+
+Для проектов TypeScript/JavaScript используйте [**TalonJS**](https://github.com/quentez/talonjs) — портирование Talon на JavaScript с аналогичной функциональностью.
+
+### Сравнение производительности
+
+| Решение          | Точность | Скорость | Лучше всего для            |
+| ---------------- | -------- | -------- | -------------------------- |
+| **Python Talon** | 93,8%    | 1,92 мс  | Высочайшая точность        |
+| **TalonJS**      | 90,6%    | 1,88 мс  | Проекты TypeScript/Node.js |
+
+TalonJS обеспечивает точность 90,6% с немного более быстрой производительностью (1,88 мс), что делает его идеальным для сред JavaScript/TypeScript без необходимости в зависимостях Python.
+
+### Быстрый старт
+
+<Steps>
+  <Step title="Установите TalonJS">
+    ```bash
+        npm install talonjs
+    ```
+  </Step>
+  <Step title="Извлеките ответы">
+    `import * as talon from 'talonjs';`
+
+    `` const email = `Great work on the project! ``
+
+    `On Mon, Apr 11, 2011 at 6:54 PM, Bob wrote:`
+
+    `> Can you review the document?`
+
+    `> Need feedback by Friday.`
+
+    `` `; ``
+
+    `const result = talon.quotations.extractFromPlain(email);`
+
+    `const cleanReply = result.body.trim();`
+
+    `// Output: "Great work on the project!"`
+  </Step>
+</Steps>
+
+<Tip>
+  **Когда использовать TalonJS vs Python Talon:**
+
+  - Используйте **TalonJS**, если вы разрабатываете на TypeScript/JavaScript и точность 90,6% достаточна
+  - Используйте **Python Talon**, если вам нужна высочайшая точность (93,8%) или вы работаете в окружении Python
+  - Разница в точности 3,2% приемлема для большинства случаев использования
+</Tip>

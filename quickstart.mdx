@@ -1,80 +1,90 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Быстрый старт"
+description: "Следуйте этому руководству, чтобы сделать свой первый запрос API AgentInbox и создать новый почтовый ящик."
+icon: "bolt-lightning"
 ---
 
-## Get started in three steps
+Это руководство проведет вас через установку AgentInbox, аутентификацию с вашим API ключом и создание вашего первого почтового ящика.
 
-Get your documentation site running locally and make your first customization.
+<Steps>
+  <Step title="Получите доступ к консоли AgentInbox">
+    Сначала вам нужно получить доступ к консоли AgentInbox для управления вашей учетной записью и API ключами. Щелкните ссылку ниже, чтобы начать.
 
-### Step 1: Set up your local environment
+    <Card icon="envelopes" href="https://console.agentmail.to" title="Открыть консоль AgentInbox">
+      
+    </Card>
+    Если у вас еще нет учетной записи, вы можете зарегистрироваться прямо из консоли. После входа вы сможете управлять своими входящими ящиками, просматривать аналитику и создавать API ключи.
+  </Step>
+  <Step title="Создайте API ключ">
+    Теперь, когда вы находитесь в консоли, вам нужно создать API ключ для аутентификации ваших запросов. Перейдите в раздел API Keys на панели управления консоли. <img src="file:95960235-a95c-4d4c-bb32-986b4629e984" alt="Снимок экрана создания API ключа" /> Щелкните "Create New API Key/Создать Новый API Ключ" и дайте ему описательное имя. После создания скопируйте API ключ и сохраните его в безопасном месте. Создайте файл `.env` в корневой папке вашего проекта и добавьте в него свой ключ.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    Мы рекомендуем использовать переменные окружения для безопасного хранения ваших ключей.
+  </Step>
+  <Step title="Установите SDK или используйте API ключ">
+    `pip install agentinbox python-dotenv`
 
-### Step 2: Deploy your changes
+    Установите SDK AgentInbox, используя предпочитаемый вами менеджер пакетов. Мы также будем использовать библиотеку для загрузки переменной окружения из файла `.env`.
+  </Step>
+  <Step title="Создайте входящий ящик и отправьте письмо">
+    Теперь вы готовы сделать свой первый вызов API. Создайте новый файл (например, `quickstart.py` или `quickstart.ts`) и добавьте следующий код. Этот скрипт инициализирует клиент AgentInbox, создает новый входящий ящик и отправляет тестовое письмо.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    `import os`
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    `from dotenv import load_dotenv`
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    `from agentinbox import AgentInbox`
 
-### Step 3: Go live
+    `# Load the API key from the .env file`
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    `load_dotenv()`
 
-## Next steps
+    `api_key = os.getenv("AGENTINBOX_API_KEY")`
 
-Now that you have your docs running, explore these key features:
+    `# Initialize the client`
 
-<CardGroup cols={2}>
+    `client = AgentInbox(api_key=api_key)`
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    `# Create an inbox`
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+    `print("Creating inbox...")`
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+    `inbox = client.inboxes.create() # domain is optional`
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+    `print("Inbox created successfully!")`
 
-</CardGroup>
+    `print(inbox)`
+
+    `# Send Email`
+
+    `client.inboxes.messages.send(`
+
+    `inbox_id="your-email@example.com",`
+
+    `to="contact@agentinbox.ru",`
+
+    `subject="Hello from AgentInbox!",`
+
+    `text="This is my first email sent with the AgentInbox API."`
+
+    `)`
+
+    <Note>
+      Предкпреждаем, что SDK может находится в статусе разработки или проверки со стороны нашей команды.
+    </Note>
+  </Step>
+  <Step title="Запустите код">
+    Выполните скрипт из вашего терминала.
+
+    `python quickstart.py`
+
+    Вы должны увидеть детали вашего только что созданного входящего ящика, выведенные в консоль. Поздравляем, вы успешно создали свой первый входящий ящик AgentInbox!
+  </Step>
+</Steps>
+
+## Дальнейшие шаги
+
+Поздравляем, вы отправили свое первое письмо через AgentInbox. Но это не наша основная сила. Изучите полную мощь создания агентов, которые могут автономно отвечать, предпринимать действия, анализировать вложения, семантически искать в вашем входящем ящике, изучив нашу документацию и учебные материалы ниже.
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Ищете другой язык? Напишите нам на info@patternautomation.com и мы вам поможем.
 </Note>
