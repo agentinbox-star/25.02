@@ -166,8 +166,8 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Панель управления",
-      "href": "https://app.agentinbox.com"
+      "label": "Консоль",
+      "href": "https://agentinbox-ru.vercel.app/"
     }
   },
   "contextual": {
