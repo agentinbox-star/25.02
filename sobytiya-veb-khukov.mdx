@@ -51,7 +51,7 @@ AgentInbox поддерживает несколько типов событий
       "to": [
         {
           "name": "Support Agent",
-          "email": "support@agentmail.to"
+          "email": "support@agent.inbox.ru"
         }
       ],
       "subject": "Question about my account",
@@ -121,9 +121,10 @@ AgentInbox поддерживает несколько типов событий
 </CodeGroup>
 
 <AccordionGroup>
-  <Accordion defaultOpen="true" title="В чем разница между `message.sent` и `message.delivered?`">
+  <Accordion title="В чем разница между `message.sent` и `message.delivered?`" defaultOpen="true">
     `message.sent` означает, что сообщение успешно покинуло наши серверы и находится в пути по сети. Это обычно происходит раньше `message.delivered`, где `message.delivered` означает, что сервер получающей электронной почты (будь то Gmail или Outlook) дает нам `200 OK`, говоря, что электронное письмо было получено. Что они делают с письмом после этого, неизвестно.
   </Accordion>
+
   <Accordion title="Означает ли `message.delivered`, что я приземлился в их входящем ящике?">
     Нет. Как упоминалось, `message.delivered` означает, что сервер получающей электронной почты, будь то Gmail или Outlook, говорит нам "Эй, AgentInbox, мы получили ваше письмо, мы возьмем это отсюда!". Обычно у них есть свои собственные проприетарные алгоритмы для определения того, попадет ли письмо во входящий ящик или спам, но будьте уверены, мы обрабатываем все необходимое, чтобы поставщики, такие как Gmail, сочли письма достойными первичного входящего ящика
   </Accordion>
